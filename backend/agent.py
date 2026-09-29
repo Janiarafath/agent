@@ -13,8 +13,6 @@ def generate_reply(user_message: str) -> str:
         
     try:
         genai.configure(api_key=api_key)
-        # Using the standard gemini-1.5-flash model via official SDK
-        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = (
             "You are GrowthPilot, an autonomous AI Sales Agent. You are currently in Demo Mode. "
@@ -22,11 +20,22 @@ def generate_reply(user_message: str) -> str:
             "Acknowledge the user's message and tell them you are ready to help them grow their business.\n\n"
             f"User: {user_message}"
         )
-        
-        response = model.generate_content(prompt)
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+        except Exception as first_e:
+            print(f"Failed with flash, trying gemini-pro. Error: {first_e}")
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content(prompt)
+            
         return response.text
         
     except Exception as e:
         error_msg = str(e)
-        print(f"AI Generation Error: {error_msg}")
-        return f"I am currently experiencing a cognitive error. Here is the exact issue: {error_msg}"
+        try:
+            available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+            models_str = ", ".join(available_models)
+        except Exception:
+            models_str = "Could not fetch models"
+            
+        return f"Cognitive Error: {error_msg}. Your API key has access to these models: {models_str[:200]}"
