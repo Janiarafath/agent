@@ -44,13 +44,34 @@ async def receive_whatsapp(request: Request, db: Session = Depends(get_db)):
     """
     data = await request.json()
     
-    # 1. Parse incoming message (Meta webhook format)
-    # 2. Find prospect in DB by phone number
-    # 3. Save Message to DB (INBOUND)
-    # 4. Update PipelineState to REPLIED (Halts Celery Follow-ups)
-    # 5. Trigger Reply Agent (Celery Task) to classify and draft response
-    
-    print(f"Received Webhook Data: {data}")
+    try:
+        # WhatsApp Webhooks have a deeply nested JSON structure
+        entry = data.get('entry', [])[0]
+        changes = entry.get('changes', [])[0]
+        value = changes.get('value', {})
+        
+        # Check if this is an actual message (and not a status update like 'delivered' or 'read')
+        if 'messages' in value:
+            msg = value['messages'][0]
+            sender_phone = msg['from']
+            
+            # Extract text if it's a text message
+            if msg.get('type') == 'text':
+                text = msg['text']['body']
+                print(f"NEW INBOUND MESSAGE from {sender_phone}: {text}")
+                
+                # 1. Wake up the Reply Agent to generate a response
+                from backend.agent import generate_reply
+                ai_reply = generate_reply(text)
+                
+                # 2. Send the message back via Meta API
+                from backend.whatsapp_provider import send_whatsapp_message
+                send_whatsapp_message(sender_phone, ai_reply)
+                
+    except Exception as e:
+        print(f"Webhook processing error: {e}")
+        # Meta expects a 200 OK even if we fail, otherwise they keep retrying
+        
     return {"status": "received"}
 
 # --- DEMO: ADD PROSPECT ---
