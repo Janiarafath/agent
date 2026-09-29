@@ -10,3 +10,4 @@ redis
 litellm
 langgraph
 requests
+google-generativeai
