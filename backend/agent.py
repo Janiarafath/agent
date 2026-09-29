@@ -37,27 +37,37 @@ def admin_agent(user_message: str, db) -> str:
         if response_text.startswith("CHAT|"):
             return response_text.replace("CHAT|", "").strip()
             
-        # 2. DISCOVERY AGENT: Execute Web Search!
+        # 2. DISCOVERY AGENT: Execute Professional Web Search via Tavily!
         search_query = response_text
-        print(f"DISCOVERY AGENT: Executing web search for '{search_query}'")
+        print(f"DISCOVERY AGENT: Executing Tavily search for '{search_query}'")
         
-        results = DDGS().text(search_query, max_results=3)
+        tavily_key = os.getenv("TAVILY_API_KEY")
+        if not tavily_key:
+            return "Boss, my search is blocked! Please add TAVILY_API_KEY to Render Environment Variables so I can scrape the web securely."
+            
+        from tavily import TavilyClient
+        tavily = TavilyClient(api_key=tavily_key)
+        
+        # Using advanced search to bypass anti-bot protections
+        search_response = tavily.search(query=search_query, search_depth="advanced", max_results=3)
+        results = search_response.get('results', [])
+        
         if not results:
-            return f"I searched the web for '{search_query}' but couldn't find any solid business leads."
+            return f"I searched the web for '{search_query}' using Tavily but couldn't find any solid business leads."
             
         reply_text = f"Boss, I ran a Discovery Search for '{search_query}'. I found these prospects and added them to your Postgres Database (State: NEW):\n\n"
         
         for res in results:
             company_name = res.get('title', 'Unknown Company')[:50]
-            website = res.get('href', 'No URL')
-            snippet = res.get('body', '')[:100]
+            website = res.get('url', 'No URL')
+            snippet = res.get('content', '')[:100]
             
             # Save to Database!
             new_prospect = models.Prospect(
                 company_name=company_name,
                 website=website,
                 pipeline_state=models.PipelineState.NEW,
-                business_signals={"source": "duckduckgo", "snippet": snippet}
+                business_signals={"source": "tavily", "snippet": snippet}
             )
             db.add(new_prospect)
             reply_text += f"- {company_name}\n"
