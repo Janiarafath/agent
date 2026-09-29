@@ -21,11 +21,11 @@ def generate_reply(user_message: str) -> str:
             f"User: {user_message}"
         )
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             response = model.generate_content(prompt)
         except Exception as first_e:
-            print(f"Failed with flash, trying gemini-pro. Error: {first_e}")
-            model = genai.GenerativeModel('gemini-pro')
+            print(f"Failed with 2.5-flash, trying gemini-flash-latest. Error: {first_e}")
+            model = genai.GenerativeModel('gemini-flash-latest')
             response = model.generate_content(prompt)
             
         return response.text
