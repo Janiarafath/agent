@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request, Depends, HTTPException
 from sqlalchemy.orm import Session
 import os
 
-from database import engine, Base, get_db
-import models
+from backend.database import engine, Base, get_db
+from backend import models
 from dotenv import load_dotenv
 
 load_dotenv()
