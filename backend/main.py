@@ -13,6 +13,26 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="GrowthPilot API")
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.get("/api/dashboard")
+def get_dashboard_data(db: Session = Depends(get_db)):
+    prospects = db.query(models.Prospect).all()
+    metrics = {
+        "total_leads": len(prospects),
+        "new": sum(1 for p in prospects if p.pipeline_state == models.PipelineState.NEW),
+        "researching": sum(1 for p in prospects if p.pipeline_state == models.PipelineState.RESEARCHING),
+        "outreach_ready": sum(1 for p in prospects if p.pipeline_state == models.PipelineState.OUTREACH_READY),
+        "replied": sum(1 for p in prospects if p.pipeline_state == models.PipelineState.REPLIED)
+    }
+    return {"metrics": metrics, "pipeline": prospects}
+
 # --- WHATSAPP CLOUD API SETUP ---
 WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "demo_verify_token")
 WHATSAPP_API_TOKEN = os.getenv("WHATSAPP_API_TOKEN", "")
