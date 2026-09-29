@@ -21,5 +21,6 @@ def generate_reply(user_message: str) -> str:
         response = completion(model="gemini/gemini-1.5-flash", messages=messages)
         return response.choices[0].message.content
     except Exception as e:
-        print(f"AI Generation Error: {e}")
-        return "I am currently experiencing a cognitive error. Please check the server logs."
+        error_msg = str(e)
+        print(f"AI Generation Error: {error_msg}")
+        return f"I am currently experiencing a cognitive error. Here is the exact issue: {error_msg}"
