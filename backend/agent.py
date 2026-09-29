@@ -17,8 +17,8 @@ def generate_reply(user_message: str) -> str:
     ]
     
     try:
-        # Use Gemini via LiteLLM
-        response = completion(model="gemini/gemini-1.5-flash", messages=messages)
+        # Use Gemini via LiteLLM (Adding -latest as required by some Google API regions)
+        response = completion(model="gemini/gemini-1.5-flash-latest", messages=messages)
         return response.choices[0].message.content
     except Exception as e:
         error_msg = str(e)
