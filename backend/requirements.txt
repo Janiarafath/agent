@@ -11,3 +11,4 @@ litellm
 langgraph
 requests
 google-generativeai
+duckduckgo-search

@@ -60,9 +60,9 @@ async def receive_whatsapp(request: Request, db: Session = Depends(get_db)):
                 text = msg['text']['body']
                 print(f"NEW INBOUND MESSAGE from {sender_phone}: {text}")
                 
-                # 1. Wake up the Reply Agent to generate a response
-                from backend.agent import generate_reply
-                ai_reply = generate_reply(text)
+                # 1. Wake up the Agent to process the message
+                from backend.agent import process_message
+                ai_reply = process_message(text, sender_phone, db)
                 
                 # 2. Send the message back via Meta API
                 from backend.whatsapp_provider import send_whatsapp_message
