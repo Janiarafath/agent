@@ -2,7 +2,6 @@ import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from backend.database import SessionLocal
 from backend import models
-from duckduckgo_search import DDGS
 from tavily import TavilyClient
 import google.generativeai as genai
 
