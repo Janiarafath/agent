@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends, HTTPException
+from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 import os
 
@@ -11,7 +11,23 @@ load_dotenv()
 # Create database tables (For demo/initialization)
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="GrowthPilot API")
+from backend.scheduler import start_scheduler, run_autonomous_discovery
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Starting Background Scheduler...")
+    start_scheduler()
+    yield
+    print("Shutting down Scheduler...")
+
+app = FastAPI(title="GrowthPilot API", lifespan=lifespan)
+
+@app.post("/api/trigger-discovery")
+def trigger_discovery(background_tasks: BackgroundTasks):
+    """Allows the Next.js Dashboard to instantly force a Discovery Run"""
+    background_tasks.add_task(run_autonomous_discovery)
+    return {"status": "Autonomous Discovery Job Queued! Check Dashboard in 30 seconds."}
 
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(

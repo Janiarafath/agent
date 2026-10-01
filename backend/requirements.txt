@@ -12,3 +12,4 @@ langgraph
 requests
 google-generativeai
 tavily-python
+apscheduler
