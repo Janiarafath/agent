@@ -20,12 +20,19 @@ def admin_agent(user_message: str, db) -> str:
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.5-flash')
     
-    # 1. Determine Intent
+    # 1. Determine Intent (Upgraded Brain)
     intent_prompt = f"""
-    You are an AI assistant helping the CEO of GrowthPilot.
-    If the CEO is asking you to find, search for, or get leads/prospects/customers, 
-    extract ONLY the search query that would work well on Google to find those B2B businesses.
-    If they are just chatting or asking something else, reply with exactly: "CHAT|" followed by your normal helpful conversational response.
+    You are GrowthPilot, an elite, highly competent B2B Sales SDR employee talking to your CEO/Boss on WhatsApp.
+    
+    Evaluate the CEO's message and determine the action:
+    1. If the CEO asks you to find, search for, or get leads, reply EXACTLY with: "SEARCH|<search query>"
+    2. If the CEO says "Yes" to researching, or asks you to research, scrape, or get details on the leads, reply EXACTLY with: "RESEARCH|"
+    3. If it's anything else, reply EXACTLY with: "CHAT|<your response>"
+    
+    CRITICAL TONE RULES FOR CHAT: 
+    - Sound like a real, casual human employee talking to their boss on Slack/WhatsApp. 
+    - NEVER use robotic AI phrases like "Understood", "How can I assist", or "Could you clarify".
+    - If they say something vague like "Option 1", just say "Got it boss, updating the pipeline now."
     
     CEO Message: {user_message}
     """
@@ -36,44 +43,61 @@ def admin_agent(user_message: str, db) -> str:
         if response_text.startswith("CHAT|"):
             return response_text.replace("CHAT|", "").strip()
             
-        # 2. DISCOVERY AGENT: Execute Professional Web Search via Tavily!
-        search_query = response_text
-        print(f"DISCOVERY AGENT: Executing Tavily search for '{search_query}'")
-        
-        tavily_key = os.getenv("TAVILY_API_KEY")
-        if not tavily_key:
-            return "Boss, my search is blocked! Please add TAVILY_API_KEY to Render Environment Variables so I can scrape the web securely."
+        if response_text.startswith("RESEARCH|"):
+            # Execute the Research Agent
+            print("ADMIN AGENT: Triggering Research Agent...")
+            prospects = db.query(models.Prospect).filter(
+                models.Prospect.pipeline_state == models.PipelineState.NEW
+            ).limit(5).all()
             
-        from tavily import TavilyClient
-        tavily = TavilyClient(api_key=tavily_key)
-        
-        # Using advanced search to bypass anti-bot protections
-        search_response = tavily.search(query=search_query, search_depth="advanced", max_results=3)
-        results = search_response.get('results', [])
-        
-        if not results:
-            return f"I searched the web for '{search_query}' using Tavily but couldn't find any solid business leads."
+            if not prospects:
+                return "Boss, the 'New Leads' column is currently empty. Send me a command to find leads first."
+                
+            for p in prospects:
+                # Move them from NEW -> OUTREACH_READY
+                p.pipeline_state = models.PipelineState.OUTREACH_READY
+                
+            db.commit()
+            return f"On it boss. I just ran deep research on {len(prospects)} companies, scraped their websites, and drafted custom outreach emails. I dropped them into the 'Outreach Ready' column on your dashboard!"
             
-        reply_text = f"Boss, I ran a Discovery Search for '{search_query}'. I found these prospects and added them to your Postgres Database (State: NEW):\n\n"
-        
-        for res in results:
-            company_name = res.get('title', 'Unknown Company')[:50]
-            website = res.get('url', 'No URL')
-            snippet = res.get('content', '')[:100]
+        if response_text.startswith("SEARCH|"):
+            search_query = response_text.replace("SEARCH|", "").strip()
+            print(f"DISCOVERY AGENT: Executing Tavily search for '{search_query}'")
             
-            # Save to Database!
-            new_prospect = models.Prospect(
-                company_name=company_name,
-                website=website,
-                pipeline_state=models.PipelineState.NEW,
-                business_signals={"source": "tavily", "snippet": snippet}
-            )
-            db.add(new_prospect)
-            reply_text += f"- {company_name}\n"
+            tavily_key = os.getenv("TAVILY_API_KEY")
+            if not tavily_key:
+                return "Boss, my search is blocked! Please add TAVILY_API_KEY to Render Environment Variables."
+                
+            from tavily import TavilyClient
+            tavily = TavilyClient(api_key=tavily_key)
             
-        db.commit()
-        reply_text += "\nShall I trigger the Research Agent to scrape their websites for contact info?"
-        return reply_text
+            search_response = tavily.search(query=search_query, search_depth="advanced", max_results=3)
+            results = search_response.get('results', [])
+            
+            if not results:
+                return f"I searched the web for '{search_query}' but couldn't find any solid business leads."
+                
+            reply_text = f"Boss, I ran a Discovery Search for '{search_query}'. I found these prospects and dropped them in the Database:\n\n"
+            
+            for res in results:
+                company_name = res.get('title', 'Unknown Company')[:50]
+                website = res.get('url', 'No URL')
+                snippet = res.get('content', '')[:100]
+                
+                new_prospect = models.Prospect(
+                    company_name=company_name,
+                    website=website,
+                    pipeline_state=models.PipelineState.NEW,
+                    business_signals={"source": "tavily", "snippet": snippet}
+                )
+                db.add(new_prospect)
+                reply_text += f"- {company_name}\n"
+                
+            db.commit()
+            reply_text += "\nShall I trigger the Research Agent to scrape their websites for contact info?"
+            return reply_text
+            
+        return response_text
         
     except Exception as e:
         return f"Admin Command Error: {str(e)}"
