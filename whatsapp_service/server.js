@@ -16,7 +16,6 @@ async function connectToWhatsApp() {
     
     sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true,
         logger: pino({ level: 'silent' }) // Suppress heavy logs
     });
 
@@ -25,6 +24,7 @@ async function connectToWhatsApp() {
         if(qr) {
             console.log('--------------------------------------------------');
             console.log('SCAN THIS QR CODE TO CONNECT YOUR WHATSAPP NUMBER:');
+            qrcode.generate(qr, { small: true });
             console.log('--------------------------------------------------');
         }
         if(connection === 'close') {
