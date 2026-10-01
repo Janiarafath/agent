@@ -1,0 +1,16 @@
+{
+  "name": "growthpilot-baileys",
+  "version": "1.0.0",
+  "description": "WhatsApp Baileys Bridge for GrowthPilot",
+  "main": "server.js",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.9",
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^9.0.0"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

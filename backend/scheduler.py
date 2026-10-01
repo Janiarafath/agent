@@ -91,6 +91,9 @@ def run_autonomous_followups():
         admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
         from backend.whatsapp_provider import send_whatsapp_message
         
+        import time
+        import random
+        
         for p in prospects:
             print(f"[FOLLOW-UP ENGINE] Drafting follow-up for {p.company_name}...")
             
@@ -108,8 +111,13 @@ def run_autonomous_followups():
             # Update state to WAITING so we don't spam them every day
             p.pipeline_state = models.PipelineState.WAITING
             followups_sent += 1
+            db.commit()
             
-        db.commit()
+            # ANTI-BAN STRATEGY: Wait a random amount of time (2-5 minutes) between sending automated messages
+            # so WhatsApp doesn't flag us as a bot.
+            delay = random.randint(120, 300)
+            print(f"[ANTI-BAN] Sleeping for {delay} seconds before sending the next message...")
+            time.sleep(delay)
         print(f"[FOLLOW-UP ENGINE] Sent {followups_sent} follow-up messages.")
         
     except Exception as e:

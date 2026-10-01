@@ -103,44 +103,55 @@ def verify_whatsapp(request: Request):
         return int(challenge)
     raise HTTPException(status_code=403, detail="Invalid verification token")
 
-# --- WHATSAPP WEBHOOK (RECEIVE MESSAGES) ---
+# --- WHATSAPP WEBHOOK (RECEIVE MESSAGES VIA META) ---
 @app.post("/webhook/whatsapp")
 async def receive_whatsapp(request: Request, db: Session = Depends(get_db)):
-    """
-    Receives real-time inbound messages from prospects.
-    This wakes up the Reply Agent and halts follow-ups!
-    """
+    """Receives real-time inbound messages from prospects via Meta API."""
     data = await request.json()
-    
     try:
-        # WhatsApp Webhooks have a deeply nested JSON structure
         entry = data.get('entry', [])[0]
         changes = entry.get('changes', [])[0]
         value = changes.get('value', {})
-        
-        # Check if this is an actual message (and not a status update like 'delivered' or 'read')
         if 'messages' in value:
             msg = value['messages'][0]
             sender_phone = msg['from']
-            
-            # Extract text if it's a text message
             if msg.get('type') == 'text':
                 text = msg['text']['body']
                 print(f"NEW INBOUND MESSAGE from {sender_phone}: {text}")
-                
-                # 1. Wake up the Agent to process the message
                 from backend.agent import process_message
                 ai_reply = process_message(text, sender_phone, db)
-                
-                # 2. Send the message back via Meta API
                 from backend.whatsapp_provider import send_whatsapp_message
                 send_whatsapp_message(sender_phone, ai_reply)
-                
     except Exception as e:
         print(f"Webhook processing error: {e}")
-        # Meta expects a 200 OK even if we fail, otherwise they keep retrying
-        
     return {"status": "received"}
+
+# --- WHATSAPP WEBHOOK (RECEIVE MESSAGES VIA BAILEYS) ---
+@app.post("/webhook/baileys")
+async def receive_baileys(request: Request, db: Session = Depends(get_db)):
+    """Receives inbound messages from our local Baileys Node server"""
+    data = await request.json()
+    try:
+        msg = data.get("message", {})
+        remote_jid = msg.get("key", {}).get("remoteJid", "")
+        sender_phone = remote_jid.split("@")[0]
+        
+        # Extract text based on how Baileys formats it
+        conversation = msg.get("message", {}).get("conversation", "")
+        extended_text = msg.get("message", {}).get("extendedTextMessage", {}).get("text", "")
+        text = conversation or extended_text
+        
+        if text and sender_phone:
+            print(f"NEW INBOUND FROM BAILEYS {sender_phone}: {text}")
+            from backend.agent import process_message
+            ai_reply = process_message(text, sender_phone, db)
+            
+            from backend.whatsapp_provider import send_whatsapp_message
+            send_whatsapp_message(sender_phone, ai_reply)
+            
+    except Exception as e:
+        print(f"Baileys webhook error: {e}")
+    return {"status": "ok"}
 
 # --- DEMO: ADD PROSPECT ---
 @app.post("/demo/add_prospect")
