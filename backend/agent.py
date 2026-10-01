@@ -18,7 +18,7 @@ def admin_agent(user_message: str, db) -> str:
     if not api_key: return "Admin mode active, but missing GEMINI_API_KEY."
     
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-3.8-flash')
     
     # 1. Determine Intent (Upgraded Brain)
     intent_prompt = f"""
@@ -146,7 +146,7 @@ def prospect_agent(user_message: str, sender_phone: str, db) -> str:
 
         genai.configure(api_key=api_key)
         # Give the AI the tool!
-        model = genai.GenerativeModel('gemini-2.5-flash', tools=[book_meeting])
+        model = genai.GenerativeModel('gemini-3.8-flash', tools=[book_meeting])
         
         prompt = (
             "You are GrowthPilot, an elite B2B Sales SDR. You are a REAL HUMAN employee. "
