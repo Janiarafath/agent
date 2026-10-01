@@ -9,6 +9,8 @@ app.use(express.json());
 
 let sock;
 
+const qrImage = require('qrcode');
+
 async function connectToWhatsApp() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     
