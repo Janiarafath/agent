@@ -29,6 +29,32 @@ def trigger_discovery(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_autonomous_discovery)
     return {"status": "Autonomous Discovery Job Queued! Check Dashboard in 30 seconds."}
 
+from backend.scheduler import run_autonomous_followups
+from backend.whatsapp_provider import send_whatsapp_message
+
+@app.post("/api/trigger-followups")
+def trigger_followups(background_tasks: BackgroundTasks):
+    """Instantly forces the Follow-up Engine to scan and text non-repliers"""
+    background_tasks.add_task(run_autonomous_followups)
+    return {"status": "Follow-up Engine Queued!"}
+
+@app.post("/api/approve/{prospect_id}")
+def approve_outreach(prospect_id: int, db: Session = Depends(get_db)):
+    """Approves a drafted message and sends it via WhatsApp"""
+    prospect = db.query(models.Prospect).filter(models.Prospect.id == prospect_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+        
+    draft = prospect.business_signals.get("draft_message", "Hello!")
+    
+    # For demo purposes, we send the message to the CEO's test number so they can see it!
+    admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
+    send_whatsapp_message(admin_phone, f"[To: {prospect.company_name}] {draft}")
+    
+    prospect.pipeline_state = models.PipelineState.CONTACTED
+    db.commit()
+    return {"status": "Sent!"}
+
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
