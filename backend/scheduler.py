@@ -93,17 +93,26 @@ def run_autonomous_followups():
         
         import time
         import random
+        from groq import Groq
+        
+        # Initialize Groq client
+        groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        client = Groq(api_key=groq_api_key) if groq_api_key else None
         
         for p in prospects:
             print(f"[FOLLOW-UP ENGINE] Drafting follow-up for {p.company_name}...")
             
             draft = f"Hi again! Just bubbling this up. Are you still looking for help at {p.company_name}?"
-            if model:
+            if client:
                 try:
                     prompt = f"Write exactly ONE SHORT SENTENCE to follow up with {p.company_name}. I previously emailed them about AI sales automation. STRICT RULE: Do NOT provide options. Do NOT output conversational filler like 'Here is your draft'. Just output the raw message text."
-                    draft = model.generate_content(prompt).text.strip()
-                except:
-                    pass
+                    response = client.chat.completions.create(
+                        messages=[{"role": "user", "content": prompt}],
+                        model="llama3-8b-8192",
+                    )
+                    draft = response.choices[0].message.content.strip()
+                except Exception as e:
+                    print(f"Groq API Error: {e}")
             
             # Send the follow up (to the admin for demo purposes)
             send_whatsapp_message(admin_phone, f"[Follow-up to {p.company_name}] {draft}")
