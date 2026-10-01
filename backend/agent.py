@@ -1,6 +1,5 @@
 import os
 import google.generativeai as genai
-from duckduckgo_search import DDGS
 from backend import models
 
 def process_message(user_message: str, sender_phone: str, db) -> str:
