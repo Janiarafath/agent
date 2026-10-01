@@ -16,7 +16,11 @@ async function connectToWhatsApp() {
     
     sock = makeWASocket({
         auth: state,
-        logger: pino({ level: 'silent' }) // Suppress heavy logs
+        logger: pino({ level: 'fatal' }), // Set to fatal to completely hide libsignal Bad MAC noise
+        syncFullHistory: false,           // Do not attempt to download old messages (which causes Bad MAC)
+        generateHighQualityLinkPreview: false,
+        markOnlineOnConnect: true,
+        browser: ['GrowthPilot', 'Chrome', '1.0.0']
     });
 
     sock.ev.on('connection.update', (update) => {
