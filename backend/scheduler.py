@@ -98,7 +98,7 @@ def run_autonomous_followups():
             draft = f"Hi again! Just bubbling this up. Are you still looking for help at {p.company_name}?"
             if model:
                 try:
-                    prompt = f"Draft a very short 1-sentence polite follow up message for {p.company_name}. I previously emailed them about AI sales automation but they didn't reply."
+                    prompt = f"Write exactly ONE SHORT SENTENCE to follow up with {p.company_name}. I previously emailed them about AI sales automation. STRICT RULE: Do NOT provide options. Do NOT output conversational filler like 'Here is your draft'. Just output the raw message text."
                     draft = model.generate_content(prompt).text.strip()
                 except:
                     pass

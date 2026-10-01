@@ -10,7 +10,7 @@ def process_message(user_message: str, sender_phone: str, db) -> str:
     if sender_phone == admin_phone:
         return admin_agent(user_message, db)
     else:
-        return prospect_agent(user_message)
+        return prospect_agent(user_message, sender_phone, db)
 
 def admin_agent(user_message: str, db) -> str:
     """Handles commands from the CEO (You)"""
@@ -78,19 +78,32 @@ def admin_agent(user_message: str, db) -> str:
     except Exception as e:
         return f"Admin Command Error: {str(e)}"
 
-def prospect_agent(user_message: str) -> str:
-    """Handles inbound replies from Prospects (The old logic)"""
+def prospect_agent(user_message: str, sender_phone: str, db) -> str:
+    """Handles inbound replies from Prospects and updates the DB"""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key: return "Hello from GrowthPilot. (No API key found)."
         
     try:
+        # 1. State Machine Update: Mark as REPLIED!
+        # In a real app we match by sender_phone. For this demo, we assume the reply belongs to the last contacted prospect.
+        last_prospect = db.query(models.Prospect).filter(
+            models.Prospect.pipeline_state.in_([models.PipelineState.CONTACTED, models.PipelineState.WAITING])
+        ).first()
+        
+        context = ""
+        if last_prospect:
+            last_prospect.pipeline_state = models.PipelineState.REPLIED
+            db.commit()
+            context = f"Context: You reached out to a company named {last_prospect.company_name} about AI Sales Automation. They just replied."
+
         genai.configure(api_key=api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = (
-            "You are GrowthPilot, an autonomous AI Sales Agent. Be extremely polite, professional, "
-            "and keep your answers under 2 sentences. Acknowledge the prospect's message.\n\n"
-            f"Prospect: {user_message}"
+            "You are GrowthPilot, an elite B2B Sales SDR. "
+            f"{context}\n\n"
+            f"The prospect just replied: '{user_message}'\n\n"
+            "STRICT RULE: Reply like a human sales rep trying to book a 15-minute intro call. Do NOT offer multiple options. Output ONLY your raw response."
         )
-        return model.generate_content(prompt).text
+        return model.generate_content(prompt).text.strip()
     except Exception as e:
         return "I am out of the office right now."
