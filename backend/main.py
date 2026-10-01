@@ -23,11 +23,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="GrowthPilot API", lifespan=lifespan)
 
+from pydantic import BaseModel
+
+class DiscoveryRequest(BaseModel):
+    query: str = "companies looking for b2b saas solutions"
+
 @app.post("/api/trigger-discovery")
-def trigger_discovery(background_tasks: BackgroundTasks):
-    """Allows the Next.js Dashboard to instantly force a Discovery Run"""
-    background_tasks.add_task(run_autonomous_discovery)
-    return {"status": "Autonomous Discovery Job Queued! Check Dashboard in 30 seconds."}
+def trigger_discovery(request: DiscoveryRequest, background_tasks: BackgroundTasks):
+    """Allows the Next.js Dashboard to instantly force a Discovery Run with a custom query"""
+    # Pass the query to the background job
+    background_tasks.add_task(run_autonomous_discovery, request.query)
+    return {"status": f"Discovery Queued for: {request.query}"}
 
 from backend.scheduler import run_autonomous_followups
 from backend.whatsapp_provider import send_whatsapp_message

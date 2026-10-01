@@ -5,9 +5,9 @@ from backend import models
 from tavily import TavilyClient
 import google.generativeai as genai
 
-def run_autonomous_discovery():
+def run_autonomous_discovery(search_query: str = "companies looking for b2b saas solutions"):
     """The background job that finds leads and drafts outreach autonomously."""
-    print("[AUTONOMOUS AGENT] Waking up to run daily discovery...")
+    print(f"[AUTONOMOUS AGENT] Waking up to run daily discovery for: {search_query}...")
     db = SessionLocal()
     
     try:
@@ -17,7 +17,6 @@ def run_autonomous_discovery():
             return
 
         tavily = TavilyClient(api_key=tavily_key)
-        search_query = "companies looking for b2b saas solutions" # Default target
         
         print(f"[AUTONOMOUS AGENT] Searching Tavily for: {search_query}")
         search_response = tavily.search(query=search_query, search_depth="basic", max_results=3)
