@@ -96,7 +96,7 @@ def run_autonomous_followups():
         from groq import Groq
         
         # Initialize Groq client
-        groq_api_key = os.getenv("GROQ_API_KEY", "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")
+        groq_api_key = os.getenv("GROQ_API_KEY", "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")
         client = Groq(api_key=groq_api_key) if groq_api_key else None
         
         for p in prospects:
@@ -108,7 +108,7 @@ def run_autonomous_followups():
                     prompt = f"Write exactly ONE SHORT SENTENCE to follow up with {p.company_name}. I previously emailed them about AI sales automation. STRICT RULE: Do NOT provide options. Do NOT output conversational filler like 'Here is your draft'. Just output the raw message text."
                     response = client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama3-8b-8192",
+                        model="qwen/qwen3.8-27b",
                     )
                     draft = response.choices[0].message.content.strip()
                 except Exception as e:

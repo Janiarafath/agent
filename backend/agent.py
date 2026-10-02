@@ -14,7 +14,7 @@ def process_message(user_message: str, sender_phone: str, db) -> str:
 
 def admin_agent(user_message: str, db) -> str:
     """Handles commands from the CEO (You)"""
-    groq_api_key = os.getenv("GROQ_API_KEY", "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")
+    groq_api_key = os.getenv("GROQ_API_KEY", "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")
     client = Groq(api_key=groq_api_key)
     
     # 1. Determine Intent (Upgraded Brain)
@@ -37,7 +37,7 @@ def admin_agent(user_message: str, db) -> str:
     try:
         response = client.chat.completions.create(
             messages=[{"role": "user", "content": intent_prompt}],
-            model="llama3-8b-8192",
+            model="qwen/qwen3.8-27b",
         )
         response_text = response.choices[0].message.content.strip()
         
@@ -113,7 +113,7 @@ def generate_gmeet_link():
 def prospect_agent(user_message: str, sender_phone: str, db) -> str:
     """Handles inbound replies from Prospects and uses Tools to book meetings"""
     import json
-    groq_api_key = os.getenv("GROQ_API_KEY", "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")
+    groq_api_key = os.getenv("GROQ_API_KEY", "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")
     client = Groq(api_key=groq_api_key)
         
     try:
@@ -178,7 +178,7 @@ def prospect_agent(user_message: str, sender_phone: str, db) -> str:
         ]
         
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="qwen/qwen3.8-27b",
             messages=messages,
             tools=tools,
             tool_choice="auto"
@@ -214,7 +214,7 @@ def prospect_agent(user_message: str, sender_phone: str, db) -> str:
                 })
                 
                 second_response = client.chat.completions.create(
-                    model="llama3-8b-8192",
+                    model="qwen/qwen3.8-27b",
                     messages=messages
                 )
                 reply_text = second_response.choices[0].message.content.strip()
