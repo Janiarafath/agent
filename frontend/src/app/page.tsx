@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Search, Loader2, Sparkles, Send, CheckCircle2, SearchIcon, Clock, MessageSquare, Terminal, ChevronRight, Activity, Smartphone, Link2, ShieldAlert } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 interface DashboardData {
   metrics: {
@@ -24,6 +25,8 @@ const API_BASE = "https://agent-k70h.onrender.com"; // Change to http://127.0.0.
 const WHATSAPP_API = "http://127.0.0.1:3001"; // Local WebJS Server
 
 export default function Dashboard() {
+  const { user, loading: authLoading, loginWithGoogle, logout } = useAuth();
+  
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +115,31 @@ export default function Dashboard() {
     } catch (err) {}
   };
 
+  if (authLoading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-zinc-400">
+        <Loader2 className="w-5 h-5 animate-spin" />
+    </div>
+  );
+
+  if (!user) {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-zinc-300 font-sans selection:bg-zinc-800">
+            <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.2]" />
+            <div className="relative z-10 max-w-sm w-full bg-[#111] border border-white/10 rounded-xl p-8 flex flex-col items-center">
+                <Activity className="w-10 h-10 text-white mb-6" />
+                <h1 className="text-2xl font-semibold text-white mb-2">GrowthPilot AI</h1>
+                <p className="text-sm text-zinc-500 text-center mb-8">Sign in to access the agentic dashboard and manage your autonomous pipeline.</p>
+                <button 
+                    onClick={loginWithGoogle}
+                    className="w-full bg-white text-black text-sm font-semibold py-3 rounded-md hover:bg-zinc-200 transition-colors"
+                >
+                    Continue with Google
+                </button>
+            </div>
+        </div>
+    );
+  }
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-zinc-400">
         <div className="flex flex-col items-center gap-4">
@@ -166,6 +194,13 @@ export default function Dashboard() {
                 <span className="px-2 py-0.5 rounded-full bg-zinc-800/50 border border-zinc-700/50 text-[10px] text-zinc-400 font-mono ml-2">v2.0.0-beta</span>
             </div>
             <div className="flex items-center gap-4">
+                {user && (
+                    <div className="flex items-center gap-3 mr-4 border-r border-white/10 pr-4">
+                        <img src={user.photoURL || ""} alt="Avatar" className="w-6 h-6 rounded-full" />
+                        <span className="text-xs text-zinc-400 hidden sm:inline-block">{user.email}</span>
+                        <button onClick={logout} className="text-xs text-zinc-500 hover:text-white">Logout</button>
+                    </div>
+                )}
                 <button 
                     onClick={() => !waConnected && setShowQRModal(true)}
                     className={`flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md border transition-all ${waConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 cursor-default' : 'border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white'}`}
