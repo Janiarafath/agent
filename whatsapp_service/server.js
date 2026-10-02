@@ -1,88 +1,70 @@
-const { default: makeWASocket, useMultiFileAuthState } = require('@whiskeysockets/baileys');
 const express = require('express');
-const axios = require('axios');
+const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const pino = require('pino');
+const axios = require('axios');
 
 const app = express();
 app.use(express.json());
 
-// Aggressively mute LibSignal decryption noise (Cosmetic terminal fix)
-const originalConsoleError = console.error;
-const originalConsoleWarn = console.warn;
-console.error = function(...args) {
-    const msg = args.join(' ');
-    if (msg.includes('Bad MAC') || msg.includes('Failed to decrypt') || msg.includes('Session error')) return;
-    originalConsoleError.apply(console, args);
-};
-console.warn = function(...args) {
-    const msg = args.join(' ');
-    if (msg.includes('Bad MAC') || msg.includes('Failed to decrypt') || msg.includes('Session error')) return;
-    originalConsoleWarn.apply(console, args);
-};
-
-let sock;
-
-const qrImage = require('qrcode');
-
-async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
-    
-    sock = makeWASocket({
-        auth: state,
-        logger: pino({ level: 'fatal' }), // Set to fatal to completely hide libsignal Bad MAC noise
-        syncFullHistory: false,           // Do not attempt to download old messages (which causes Bad MAC)
-        generateHighQualityLinkPreview: false,
-        markOnlineOnConnect: true,
-        browser: ['GrowthPilot', 'Chrome', '1.0.0']
-    });
-
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-        if(qr) {
-            console.log('--------------------------------------------------');
-            console.log('SCAN THIS QR CODE TO CONNECT YOUR WHATSAPP NUMBER:');
-            qrcode.generate(qr, { small: true });
-            console.log('--------------------------------------------------');
-        }
-        if(connection === 'close') {
-            console.log('Connection closed, reconnecting...');
-            connectToWhatsApp();
-        } else if(connection === 'open') {
-            console.log('🔥 WhatsApp Connected successfully via Baileys!');
-        }
-    });
-
-    sock.ev.on('creds.update', saveCreds);
-
-    sock.ev.on('messages.upsert', async m => {
-        const msg = m.messages[0];
-        if(!msg.key.fromMe && m.type === 'notify') {
-            // Forward to Python FastAPI webhook
-            try {
-                await axios.post('http://127.0.0.1:8000/webhook/baileys', {
-                    message: msg
-                });
-            } catch(e) {
-                console.error('Failed to forward to Python AI Engine. Is FastAPI running on port 8000?');
-            }
-        }
-    });
-}
-
-app.post('/api/send', async (req, res) => {
-    const { to, text } = req.body;
-    try {
-        const jid = to + '@s.whatsapp.net';
-        await sock.sendMessage(jid, { text: text });
-        res.json({ status: 'sent', jid: jid });
-    } catch (e) {
-        console.error('Error sending message:', e);
-        res.status(500).json({ error: e.message });
+// Initialize the WhatsApp Web Client using Puppeteer
+const client = new Client({
+    authStrategy: new LocalAuth({ dataPath: 'auth_info_webjs' }),
+    puppeteer: { 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--single-process', '--disable-gpu']
     }
 });
 
+// Generate QR Code
+client.on('qr', (qr) => {
+    console.log('--------------------------------------------------');
+    console.log('SCAN THIS QR CODE TO CONNECT YOUR WHATSAPP NUMBER:');
+    qrcode.generate(qr, { small: true });
+    console.log('--------------------------------------------------');
+});
+
+// Connected successfully
+client.on('ready', () => {
+    console.log('🔥 WhatsApp Connected successfully via WhatsApp-Web.js (Chrome Engine)!');
+});
+
+// Handle incoming messages
+client.on('message', async msg => {
+    if (msg.from === 'status@broadcast') return;
+    
+    console.log(`[WebJS] Received message from ${msg.from}`);
+    
+    // Convert Web.js format back to our standard webhook format so Python doesn't break
+    const webhookPayload = {
+        message: {
+            key: { remoteJid: msg.from.replace('@c.us', '@s.whatsapp.net') },
+            message: { conversation: msg.body }
+        }
+    };
+
+    try {
+        await axios.post('http://127.0.0.1:8000/webhook/baileys', webhookPayload);
+    } catch (e) {
+        console.error('Failed to forward to Python AI Engine. Is FastAPI running on port 8000?');
+    }
+});
+
+// API Endpoint for Python to send outgoing messages
+app.post('/api/send', async (req, res) => {
+    const { to, text } = req.body;
+    try {
+        // Web.js uses @c.us instead of @s.whatsapp.net
+        const jid = to.includes('@') ? to.replace('@s.whatsapp.net', '@c.us') : to + '@c.us';
+        await client.sendMessage(jid, text);
+        res.json({ status: 'sent', jid });
+    } catch (error) {
+        console.error("Send Error:", error);
+        res.status(500).json({ status: 'error', error: error.toString() });
+    }
+});
+
+// Start the Web Server
 app.listen(3001, () => {
-    console.log('Baileys WhatsApp Service running on port 3001');
-    connectToWhatsApp();
+    console.log('WhatsApp-Web.js Service running on port 3001');
+    client.initialize();
 });
