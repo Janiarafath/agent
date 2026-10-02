@@ -28,16 +28,23 @@ client.on('ready', () => {
     console.log('🔥 WhatsApp Connected successfully via WhatsApp-Web.js (Chrome Engine)!');
 });
 
+// Cache exact domains so we don't accidentally reply to @c.us when the user is @lid
+const jidCache = {};
+
 // Handle incoming messages
 client.on('message', async msg => {
     if (msg.from === 'status@broadcast') return;
     
     console.log(`[WebJS] Received message from ${msg.from}`);
     
+    // Cache the exact domain (e.g. @lid vs @c.us) for this specific user
+    const rawNumber = msg.from.split('@')[0];
+    jidCache[rawNumber] = msg.from;
+    
     // Convert Web.js format back to our standard webhook format so Python doesn't break
     const webhookPayload = {
         message: {
-            key: { remoteJid: msg.from.replace('@c.us', '@s.whatsapp.net') },
+            key: { remoteJid: msg.from }, // Pass exact JID
             message: { conversation: msg.body }
         }
     };
@@ -53,8 +60,19 @@ client.on('message', async msg => {
 app.post('/api/send', async (req, res) => {
     const { to, text } = req.body;
     try {
-        // Web.js uses @c.us instead of @s.whatsapp.net
-        const jid = to.includes('@') ? to.replace('@s.whatsapp.net', '@c.us') : to + '@c.us';
+        let jid = to;
+        // If Python didn't specify the domain, look it up in our cache!
+        if (!jid.includes('@')) {
+            if (jidCache[to]) {
+                jid = jidCache[to];
+            } else {
+                jid = to + '@c.us'; // Fallback to standard real number
+            }
+        } else {
+            jid = jid.replace('@s.whatsapp.net', '@c.us'); // Cleanup any Baileys legacy domains
+        }
+        
+        console.log(`[WebJS] Replying to exact JID: ${jid}`);
         await client.sendMessage(jid, text);
         res.json({ status: 'sent', jid });
     } catch (error) {
