@@ -7,6 +7,20 @@ const pino = require('pino');
 const app = express();
 app.use(express.json());
 
+// Aggressively mute LibSignal decryption noise (Cosmetic terminal fix)
+const originalConsoleError = console.error;
+const originalConsoleWarn = console.warn;
+console.error = function(...args) {
+    const msg = args.join(' ');
+    if (msg.includes('Bad MAC') || msg.includes('Failed to decrypt') || msg.includes('Session error')) return;
+    originalConsoleError.apply(console, args);
+};
+console.warn = function(...args) {
+    const msg = args.join(' ');
+    if (msg.includes('Bad MAC') || msg.includes('Failed to decrypt') || msg.includes('Session error')) return;
+    originalConsoleWarn.apply(console, args);
+};
+
 let sock;
 
 const qrImage = require('qrcode');
