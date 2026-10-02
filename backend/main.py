@@ -53,9 +53,11 @@ def approve_outreach(prospect_id: int, db: Session = Depends(get_db)):
         
     draft = prospect.business_signals.get("draft_message", "Hello!")
     
-    # For demo purposes, we send the message to the CEO's test number so they can see it!
-    admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
-    send_whatsapp_message(admin_phone, f"[To: {prospect.company_name}] {draft}")
+    # LIVE MODE: Send directly to the stranger's scraped public phone number
+    if prospect.public_phone:
+        send_whatsapp_message(prospect.public_phone, draft)
+    else:
+        raise HTTPException(status_code=400, detail="Prospect has no phone number")
     
     prospect.pipeline_state = models.PipelineState.CONTACTED
     db.commit()
