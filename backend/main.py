@@ -134,7 +134,10 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
     try:
         msg = data.get("message", {})
         remote_jid = msg.get("key", {}).get("remoteJid", "")
-        sender_phone = remote_jid.split("@")[0]
+        
+        # remote_jid looks like '12892683961:9831@s.whatsapp.net'
+        sender_phone_with_device = remote_jid.split("@")[0]
+        sender_phone = sender_phone_with_device.split(":")[0] # Strip the device ID!
         
         # Extract text based on how Baileys formats it
         conversation = msg.get("message", {}).get("conversation", "")
