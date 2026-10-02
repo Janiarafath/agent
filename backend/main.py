@@ -135,11 +135,26 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     try:
         msg = data.get("message", {})
-        remote_jid = msg.get("key", {}).get("remoteJid", "")
+        key = msg.get("key", {})
+        remote_jid = key.get("remoteJid", "")
+        from_me = key.get("fromMe", False)
         
-        # remote_jid looks like '12892683961:9831@s.whatsapp.net'
+        # Extract phone regardless of colon or @ domain
         sender_phone_with_device = remote_jid.split("@")[0]
-        sender_phone = sender_phone_with_device.split(":")[0] # Strip the device ID!
+        sender_phone = sender_phone_with_device.split(":")[0]
+        
+        prospect = db.query(models.Prospect).filter(models.Prospect.public_phone == sender_phone).first()
+        
+        # Human Takeover check
+        if prospect and from_me:
+            print(f"[AI MUTE PROTOCOL] Human replied to {sender_phone}. Muting AI.")
+            prospect.ai_muted = True
+            db.commit()
+            return {"status": "muted"}
+            
+        if prospect and prospect.ai_muted:
+            print(f"[AI MUTED] Ignored inbound message from {sender_phone}")
+            return {"status": "ignored"}
         
         # Extract text based on how Baileys formats it
         conversation = msg.get("message", {}).get("conversation", "")

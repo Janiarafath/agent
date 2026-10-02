@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search, Loader2, Sparkles, Send, CheckCircle2, SearchIcon, Clock, MessageSquare, Terminal, ChevronRight, Activity } from "lucide-react";
+import { Search, Loader2, Sparkles, Send, CheckCircle2, SearchIcon, Clock, MessageSquare, Terminal, ChevronRight, Activity, Smartphone, Link2, ShieldAlert } from "lucide-react";
 
 interface DashboardData {
   metrics: {
@@ -16,10 +16,12 @@ interface DashboardData {
     company_name: string;
     pipeline_state: string;
     business_signals: any;
+    ai_muted: boolean;
   }[];
 }
 
 const API_BASE = "https://agent-k70h.onrender.com"; // Change to http://127.0.0.1:8000 for local testing
+const WHATSAPP_API = "http://127.0.0.1:3001"; // Local WebJS Server
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -29,20 +31,53 @@ export default function Dashboard() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [isFollowup, setIsFollowup] = useState(false);
 
+  // WhatsApp Connection State
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [waConnected, setWaConnected] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  // Poll for Dashboard Data
   useEffect(() => {
-    fetch(`${API_BASE}/api/dashboard`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to connect to Python Engine");
-        return res.json();
-      })
-      .then((data) => {
-        setData(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+    const fetchDashboard = () => {
+      fetch(`${API_BASE}/api/dashboard`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to connect to Python Engine");
+          return res.json();
+        })
+        .then((data) => {
+          setData(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          setError(err.message);
+          setLoading(false);
+        });
+    };
+    fetchDashboard();
+    const interval = setInterval(fetchDashboard, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Poll for WhatsApp Status
+  useEffect(() => {
+    const checkWaStatus = async () => {
+        try {
+            const res = await fetch(`${WHATSAPP_API}/api/whatsapp/status`);
+            const json = await res.json();
+            setWaConnected(json.connected);
+            if (json.qr && !json.connected) {
+                setQrCode(json.qr);
+            }
+            if (json.connected) {
+                setShowQRModal(false);
+            }
+        } catch (e) {
+            console.error("WhatsApp server not responding");
+        }
+    };
+    checkWaStatus();
+    const interval = setInterval(checkWaStatus, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const triggerDiscovery = async () => {
@@ -67,6 +102,11 @@ export default function Dashboard() {
   };
   
   const approveOutreach = async (id: number) => {
+    if (!waConnected) {
+        alert("Please connect WhatsApp first!");
+        setShowQRModal(true);
+        return;
+    }
     try {
         await fetch(`${API_BASE}/api/approve/${id}`, { method: "POST" });
     } catch (err) {}
@@ -83,6 +123,35 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-300 font-sans selection:bg-zinc-800">
+      
+      {/* WhatsApp QR Modal */}
+      {showQRModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#111] border border-white/10 rounded-xl p-8 max-w-sm w-full flex flex-col items-center">
+                <Smartphone className="w-10 h-10 text-emerald-500 mb-4" />
+                <h3 className="text-xl font-medium text-white mb-2">Connect WhatsApp</h3>
+                <p className="text-sm text-zinc-400 text-center mb-6">Scan this code with your WhatsApp mobile app to link your account as a sender.</p>
+                
+                {qrCode ? (
+                    <div className="bg-white p-4 rounded-lg">
+                        <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
+                    </div>
+                ) : (
+                    <div className="w-48 h-48 bg-[#1a1a1a] rounded-lg flex items-center justify-center border border-white/5">
+                        <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+                    </div>
+                )}
+                
+                <button 
+                    onClick={() => setShowQRModal(false)}
+                    className="mt-6 text-xs text-zinc-500 hover:text-white uppercase tracking-widest font-mono"
+                >
+                    Cancel
+                </button>
+            </div>
+        </div>
+      )}
+
       {/* Brutalist Grid Background */}
       <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(to_right,#27272a_1px,transparent_1px),linear-gradient(to_bottom,#27272a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.2]" />
       
@@ -97,6 +166,13 @@ export default function Dashboard() {
                 <span className="px-2 py-0.5 rounded-full bg-zinc-800/50 border border-zinc-700/50 text-[10px] text-zinc-400 font-mono ml-2">v2.0.0-beta</span>
             </div>
             <div className="flex items-center gap-4">
+                <button 
+                    onClick={() => !waConnected && setShowQRModal(true)}
+                    className={`flex items-center gap-2 text-xs font-mono px-3 py-1.5 rounded-md border transition-all ${waConnected ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 cursor-default' : 'border-zinc-700 hover:border-zinc-500 text-zinc-400 hover:text-white'}`}
+                >
+                    <Link2 className="w-3 h-3" />
+                    {waConnected ? 'WhatsApp Connected' : 'Link WhatsApp'}
+                </button>
                 <div className="flex items-center gap-2 text-xs font-mono text-zinc-500">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                     Agent Online
@@ -184,8 +260,9 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data?.pipeline.filter(p => p.pipeline_state === 'PipelineState.NEW' || p.pipeline_state === 'NEW').map(p => (
-                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-white/[0.06] hover:border-white/[0.12] transition-colors cursor-default">
-                    <p className="text-sm text-zinc-200 font-medium truncate">{p.company_name}</p>
+                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-white/[0.06] hover:border-white/[0.12] transition-colors cursor-default relative">
+                    {p.ai_muted && <ShieldAlert className="absolute top-2 right-2 w-3 h-3 text-red-500" />}
+                    <p className="text-sm text-zinc-200 font-medium truncate pr-4">{p.company_name}</p>
                     <p className="text-[10px] font-mono text-zinc-500 mt-2 truncate">SRC: {p.business_signals?.source || 'SYSTEM'}</p>
                   </div>
                 ))}
@@ -205,8 +282,9 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data?.pipeline.filter(p => p.pipeline_state === 'PipelineState.RESEARCHING' || p.pipeline_state === 'RESEARCHING').map(p => (
-                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]">
-                    <p className="text-sm text-zinc-200 font-medium truncate">{p.company_name}</p>
+                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)] relative">
+                    {p.ai_muted && <ShieldAlert className="absolute top-2 right-2 w-3 h-3 text-red-500" />}
+                    <p className="text-sm text-zinc-200 font-medium truncate pr-4">{p.company_name}</p>
                     <div className="mt-2.5 flex items-center gap-1.5">
                         <Loader2 className="w-3 h-3 text-amber-500/70 animate-spin" />
                         <span className="text-[10px] font-mono text-amber-500/70">SCRAPING_DATA</span>
@@ -229,8 +307,9 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data?.pipeline.filter(p => p.pipeline_state === 'PipelineState.OUTREACH_READY' || p.pipeline_state === 'OUTREACH_READY').map(p => (
-                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-purple-500/30 group">
-                    <p className="text-sm text-zinc-200 font-medium truncate">{p.company_name}</p>
+                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-purple-500/30 group relative">
+                    {p.ai_muted && <ShieldAlert className="absolute top-2 right-2 w-3 h-3 text-red-500" />}
+                    <p className="text-sm text-zinc-200 font-medium truncate pr-4">{p.company_name}</p>
                     <button 
                         onClick={() => approveOutreach(p.id)} 
                         className="mt-3 w-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border border-purple-500/20 text-[11px] font-mono py-1.5 rounded transition-all flex items-center justify-center gap-1.5"
@@ -255,7 +334,13 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data?.pipeline.filter(p => p.pipeline_state === 'PipelineState.CONTACTED' || p.pipeline_state === 'CONTACTED').map(p => (
-                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-white/[0.06]">
+                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-white/[0.06] relative">
+                    {p.ai_muted && (
+                        <div className="mb-2 bg-red-500/10 border border-red-500/20 rounded-md px-2 py-1 flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3 text-red-400" />
+                            <span className="text-[9px] font-mono text-red-400 uppercase">AI Muted (Human Mode)</span>
+                        </div>
+                    )}
                     <p className="text-sm text-zinc-200 font-medium truncate">{p.company_name}</p>
                     <div className="mt-2.5 flex items-center gap-1.5 text-zinc-500">
                         <Clock className="w-3 h-3" />
@@ -279,7 +364,13 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {data?.pipeline.filter(p => p.pipeline_state === 'PipelineState.REPLIED' || p.pipeline_state === 'REPLIED').map(p => (
-                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-emerald-500/30">
+                  <div key={p.id} className="bg-[#1a1a1a] p-3 rounded-md border border-emerald-500/30 relative">
+                    {p.ai_muted && (
+                        <div className="mb-2 bg-red-500/10 border border-red-500/20 rounded-md px-2 py-1 flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3 text-red-400" />
+                            <span className="text-[9px] font-mono text-red-400 uppercase">AI Muted (Human Mode)</span>
+                        </div>
+                    )}
                     <p className="text-sm text-zinc-200 font-medium truncate">{p.company_name}</p>
                     <div className="mt-2.5 flex items-center gap-1.5 text-emerald-400">
                         <CheckCircle2 className="w-3 h-3" />

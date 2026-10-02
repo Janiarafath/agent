@@ -34,6 +34,7 @@ class Prospect(Base):
     # Qualification & AI Research
     score = Column(Integer, default=0)
     business_signals = Column(JSON, default=dict) # Evidence gathered by AI
+    ai_muted = Column(Boolean, default=False) # Human Takeover Protocol flag
     
     # State Machine
     pipeline_state = Column(Enum(PipelineState), default=PipelineState.NEW)

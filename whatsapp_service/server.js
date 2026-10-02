@@ -1,10 +1,16 @@
 const express = require('express');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const axios = require('axios');
+const cors = require('cors');
 
 const app = express();
 app.use(express.json());
+app.use(cors());
+
+let latestQR = null;
+let isConnected = false;
 
 // Initialize the WhatsApp Web Client using Puppeteer
 const client = new Client({
@@ -16,15 +22,24 @@ const client = new Client({
 });
 
 // Generate QR Code
-client.on('qr', (qr) => {
+client.on('qr', async (qr) => {
     console.log('--------------------------------------------------');
     console.log('SCAN THIS QR CODE TO CONNECT YOUR WHATSAPP NUMBER:');
-    qrcode.generate(qr, { small: true });
+    qrcodeTerminal.generate(qr, { small: true });
     console.log('--------------------------------------------------');
+    
+    // Store as Data URI for the React frontend
+    try {
+        latestQR = await qrcode.toDataURL(qr);
+    } catch (e) {
+        console.error("Failed to generate QR data URI");
+    }
 });
 
 // Connected successfully
 client.on('ready', () => {
+    isConnected = true;
+    latestQR = null;
     console.log('🔥 WhatsApp Connected successfully via WhatsApp-Web.js (Chrome Engine)!');
 });
 
@@ -37,14 +52,12 @@ client.on('message', async msg => {
     
     console.log(`[WebJS] Received message from ${msg.from}`);
     
-    // Cache the exact domain (e.g. @lid vs @c.us) for this specific user
     const rawNumber = msg.from.split('@')[0];
     jidCache[rawNumber] = msg.from;
     
-    // Convert Web.js format back to our standard webhook format so Python doesn't break
     const webhookPayload = {
         message: {
-            key: { remoteJid: msg.from }, // Pass exact JID
+            key: { remoteJid: msg.from, fromMe: false },
             message: { conversation: msg.body }
         }
     };
@@ -56,20 +69,43 @@ client.on('message', async msg => {
     }
 });
 
+// Intercept Human Takeover (When the user texts from their own phone)
+client.on('message_create', async msg => {
+    if (msg.fromMe) {
+        console.log(`[WebJS] HUMAN TAKEOVER DETECTED on chat ${msg.to}`);
+        const webhookPayload = {
+            message: {
+                key: { remoteJid: msg.to, fromMe: true }, // Send to Python so it knows to mute the AI
+                message: { conversation: msg.body }
+            }
+        };
+        try {
+            await axios.post('http://127.0.0.1:8000/webhook/baileys', webhookPayload);
+        } catch (e) {}
+    }
+});
+
+// API Endpoint to check connection status and get QR code
+app.get('/api/whatsapp/status', (req, res) => {
+    res.json({
+        connected: isConnected,
+        qr: latestQR
+    });
+});
+
 // API Endpoint for Python to send outgoing messages
 app.post('/api/send', async (req, res) => {
     const { to, text } = req.body;
     try {
         let jid = to;
-        // If Python didn't specify the domain, look it up in our cache!
         if (!jid.includes('@')) {
             if (jidCache[to]) {
                 jid = jidCache[to];
             } else {
-                jid = to + '@c.us'; // Fallback to standard real number
+                jid = to + '@c.us';
             }
         } else {
-            jid = jid.replace('@s.whatsapp.net', '@c.us'); // Cleanup any Baileys legacy domains
+            jid = jid.replace('@s.whatsapp.net', '@c.us');
         }
         
         console.log(`[WebJS] Replying to exact JID: ${jid}`);
