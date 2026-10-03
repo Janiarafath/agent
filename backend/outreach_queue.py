@@ -76,8 +76,10 @@ def can_send(db: Session, prospect: models.Prospect, user_id: str, cap: int = DA
         return False, "not-on-whatsapp"
     if not prospect.public_phone:
         return False, "no-phone"
-    if not in_work_hours(location=getattr(prospect, "location", "") or ""):
-        return False, "outside-work-hours-recipient"
+    import os as _os
+    if _os.getenv("ENFORCE_WORK_HOURS", "0") == "1":
+        if not in_work_hours(location=getattr(prospect, "location", "") or ""):
+            return False, "outside-work-hours-recipient"
     if sent_today_count(db, user_id) >= cap:
         return False, f"daily-cap-{cap}-reached"
     return True, "ok"
