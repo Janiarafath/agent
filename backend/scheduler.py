@@ -49,7 +49,7 @@ def run_autonomous_discovery(search_query: str = "companies looking for b2b saas
                     prompt = f"Draft a 2-sentence highly personalized casual cold WhatsApp message to a company named {company_name}. Here is what they do: {snippet}. Offer our AI Sales Automation service. Do not use placeholders or brackets. Output ONLY the raw message."
                     response = groq_client.chat.completions.create(
                         messages=[{"role": "user", "content": prompt}],
-                        model="llama3-8b-8192",
+                        model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
                     )
                     draft = response.choices[0].message.content.strip()
                 except Exception as e:
@@ -109,7 +109,7 @@ def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Ara
             if groq_client:
                 try:
                     prompt = f"Draft a 2-sentence highly personalized casual cold WhatsApp message to a business named {lead.get('company_name')}. Industry: {lead.get('industry')}. Address: {lead.get('address')}. Offer AI Sales Automation. No placeholders. Output ONLY raw message."
-                    resp = groq_client.chat.completions.create(messages=[{"role": "user", "content": prompt}], model="llama3-8b-8192")
+                    resp = groq_client.chat.completions.create(messages=[{"role": "user", "content": prompt}], model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"))
                     draft = resp.choices[0].message.content.strip()
                 except Exception as e:
                     print(f"Groq draft error: {e}")
