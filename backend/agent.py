@@ -105,12 +105,7 @@ def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
     except Exception as e:
         return f"Admin Command Error: {str(e)}"
 
-import random
-import string
-
-def generate_gmeet_link():
-    chars = string.ascii_lowercase
-    return f"https://meet.google.com/{''.join(random.choices(chars, k=3))}-{''.join(random.choices(chars, k=4))}-{''.join(random.choices(chars, k=3))}"
+import random as _random  # noqa: F401 (kept for compat)
 
 def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Handles inbound replies from Prospects and uses Tools to book meetings"""
@@ -136,20 +131,22 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
             db.commit()
             context = f"Context: You reached out to a company named {company_name} about AI Sales Automation. They just replied."
 
-        # Define the AI Tool
-        def book_meeting(meeting_time: str) -> str:
+        # Define the AI Tool (real joinable link + boss notified in WhatsApp + dashboard)
+        def book_meeting(meeting_time: str, interest: str = "") -> str:
             """Call this tool ONLY when the prospect explicitly agrees to a specific day or time for a meeting."""
-            link = generate_gmeet_link()
             if last_prospect:
-                last_prospect.pipeline_state = models.PipelineState.INTERESTED # Meeting Booked
-                db.commit()
-                
-                # Notify the Boss (CEO) immediately!
-                admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
-                from backend.whatsapp_provider import send_whatsapp_message
-                send_whatsapp_message(admin_phone, f"🔥 BOSS! I just booked a meeting with {company_name} for {meeting_time}.\n\nLink: {link}")
-                
-            return f"Success. The Google Meet link is {link}."
+                try:
+                    from backend.meetings import book_meeting_for_prospect
+                    meeting = book_meeting_for_prospect(
+                        db, last_prospect, meeting_time,
+                        interest=interest or f"{company_name} showed interest and agreed to talk",
+                        user_id=user_id,
+                    )
+                    return f"Success. The meeting link is {meeting.meet_link}."
+                except Exception as e:
+                    print(f"[AGENT] meeting book fail: {e}")
+                    return "Booking failed, tell them our team will confirm shortly."
+            return "No prospect context to book against."
 
         tools = [{
             "type": "function",
@@ -162,6 +159,10 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                         "meeting_time": {
                             "type": "string",
                             "description": "The time the prospect agreed to, e.g. 'tomorrow at 2 PM'"
+                        },
+                        "interest": {
+                            "type": "string",
+                            "description": "One line on why they are interested / how they feel about the service"
                         }
                     },
                     "required": ["meeting_time"]

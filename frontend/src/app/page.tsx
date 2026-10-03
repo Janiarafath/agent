@@ -45,6 +45,9 @@ export default function Dashboard() {
   const [waConnected, setWaConnected] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
 
+  // Meetings State (boss alerts: interest + agreed time + join link)
+  const [meetings, setMeetings] = useState<any[]>([]);
+
   useEffect(() => {
     if (!user) return;
     const fetchDashboard = () => {
@@ -52,6 +55,10 @@ export default function Dashboard() {
         .then((res) => res.json())
         .then((data) => { setData(data); setLoading(false); })
         .catch((err) => { setError(err.message); setLoading(false); });
+      fetch(`${API_BASE}/api/meetings?user_id=${user.uid}`)
+        .then((res) => res.json())
+        .then((data) => { setMeetings(data.meetings || []); })
+        .catch(() => {});
     };
     fetchDashboard();
     const interval = setInterval(fetchDashboard, 5000);
@@ -296,6 +303,32 @@ export default function Dashboard() {
         ))}
       </div>
         
+      {/* Meetings Booked — boss alerts */}
+      <div className="bg-white/60 backdrop-blur-xl border border-white/40 p-6 rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+        <h2 className="text-lg font-bold text-slate-800 mb-1">Meetings Booked 🔥</h2>
+        <p className="text-sm text-slate-500 mb-4">Customers who showed interest and agreed to a time. Join link included.</p>
+        {meetings.length === 0 ? (
+          <p className="text-sm text-slate-400">No meetings yet — booked calls land here with company, time, interest + join link.</p>
+        ) : (
+          <div className="space-y-3">
+            {meetings.map((m: any) => (
+              <div key={m.id} className="bg-white p-4 rounded-xl border-l-4 border-l-emerald-500 border-y border-r border-slate-100 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{m.company}</p>
+                    <p className="text-xs text-slate-500 mt-1">Agreed: <span className="font-semibold text-slate-700">{m.time}</span></p>
+                    <p className="text-xs text-emerald-600 mt-1">{m.interest}</p>
+                  </div>
+                  <a href={m.link} target="_blank" rel="noreferrer" className="shrink-0 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold text-center">
+                    Join Call
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Pipeline Interface */}
       <div>
         <h2 className="text-lg font-bold text-slate-800 mb-4 px-2">Pipeline State</h2>

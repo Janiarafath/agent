@@ -105,6 +105,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/api/meetings")
+def get_meetings(user_id: str, db: Session = Depends(get_db)):
+    """Boss view: every booked meeting with company, agreed time, interest + join link."""
+    rows = db.query(models.Meeting).filter(models.Meeting.user_id == user_id).order_by(models.Meeting.id.desc()).all()
+    out = []
+    for m in rows:
+        p = db.query(models.Prospect).filter(models.Prospect.id == m.prospect_id).first()
+        out.append({"id": m.id, "company": p.company_name if p else "?",
+                    "phone": p.public_phone if p else "",
+                    "time": m.meeting_time, "link": m.meet_link,
+                    "provider": m.provider, "interest": m.interest,
+                    "status": m.status, "created_at": str(m.created_at)})
+    return {"meetings": out}
+
 @app.get("/api/dashboard")
 def get_dashboard_data(user_id: str, db: Session = Depends(get_db)):
     prospects = db.query(models.Prospect).filter(models.Prospect.user_id == user_id).all()

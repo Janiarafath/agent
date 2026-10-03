@@ -56,3 +56,19 @@ class Message(Base):
     status = Column(String) # "SENT", "DELIVERED", "READ", "FAILED", "DRAFT"
     
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+class Meeting(Base):
+    """Booked meeting: real joinable link + interest intel for boss dashboard."""
+    __tablename__ = "meetings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    prospect_id = Column(Integer, ForeignKey("prospects.id"))
+
+    meeting_time = Column(String)  # as agreed, e.g. "tomorrow at 2 PM"
+    meet_link = Column(String)     # real joinable URL (jitsi now, google when OAuth added)
+    provider = Column(String, default="jitsi")  # "jitsi" | "google"
+    interest = Column(String, default="")  # why they're interested / sentiment
+    status = Column(String, default="BOOKED")  # BOOKED | DONE | CANCELLED
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
