@@ -5,8 +5,10 @@ import os
 from backend.database import engine, Base, get_db
 from backend import models
 from dotenv import load_dotenv
+from pathlib import Path as _Path
 
-load_dotenv()
+# Load repo-root .env by absolute path (robust to any working directory)
+load_dotenv(dotenv_path=_Path(__file__).resolve().parent.parent / ".env")
 
 # Create database tables (For demo/initialization)
 Base.metadata.create_all(bind=engine)
