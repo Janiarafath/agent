@@ -27,12 +27,26 @@ from pydantic import BaseModel
 
 class DiscoveryRequest(BaseModel):
     query: str = "companies looking for b2b saas solutions"
+    user_id: str
+
+class AutoDiscoveryRequest(BaseModel):
+    category: str = "dentists"
+    city: str = "Riyadh, Saudi Arabia"
+    user_id: str = "default_user"
+    max_results: int = 25
+
+@app.post("/api/discover")
+def auto_discover(request: AutoDiscoveryRequest, background_tasks: BackgroundTasks):
+    """Autonomous lead find: OSM + Places API + website crawl -> verify -> draft. No CSV."""
+    from backend.scheduler import run_lead_pipeline
+    background_tasks.add_task(run_lead_pipeline, request.category, request.city, request.user_id, request.max_results)
+    return {"status": f"Auto-discovery queued: {request.category} in {request.city}"}
 
 @app.post("/api/trigger-discovery")
 def trigger_discovery(request: DiscoveryRequest, background_tasks: BackgroundTasks):
     """Allows the Next.js Dashboard to instantly force a Discovery Run with a custom query"""
-    # Pass the query to the background job
-    background_tasks.add_task(run_autonomous_discovery, request.query)
+    # Pass the query and user_id to the background job
+    background_tasks.add_task(run_autonomous_discovery, request.query, request.user_id)
     return {"status": f"Discovery Queued for: {request.query}"}
 
 from backend.scheduler import run_autonomous_followups
@@ -45,19 +59,32 @@ def trigger_followups(background_tasks: BackgroundTasks):
     return {"status": "Follow-up Engine Queued!"}
 
 @app.post("/api/approve/{prospect_id}")
-def approve_outreach(prospect_id: int, db: Session = Depends(get_db)):
-    """Approves a drafted message and sends it via WhatsApp"""
-    prospect = db.query(models.Prospect).filter(models.Prospect.id == prospect_id).first()
+def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_db)):
+    """Approves a drafted message and sends it via WhatsApp (guarded, capped, logged)"""
+    from backend.outreach_queue import can_send, log_message
+    prospect = db.query(models.Prospect).filter(models.Prospect.id == prospect_id, models.Prospect.user_id == user_id).first()
     if not prospect:
         raise HTTPException(status_code=404, detail="Prospect not found")
-        
-    draft = prospect.business_signals.get("draft_message", "Hello!")
-    
-    # LIVE MODE: Send directly to the stranger's scraped public phone number
-    if prospect.public_phone:
-        send_whatsapp_message(prospect.public_phone, draft)
-    else:
+    ok, reason = can_send(db, prospect, user_id)
+    if not ok:
+        raise HTTPException(status_code=429, detail=f"Blocked: {reason}")
+    draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
+
+    # Self-DM guard: never send to own admin/test number
+    import os as _os
+    admin_digits = "".join(filter(str.isdigit, _os.getenv("ADMIN_PHONE_NUMBER", "918148647818")))
+    target_digits = "".join(filter(str.isdigit, prospect.public_phone or ""))
+    if not target_digits:
         raise HTTPException(status_code=400, detail="Prospect has no phone number")
+    if target_digits == admin_digits or target_digits.lstrip("91") == admin_digits.lstrip("91"):
+        raise HTTPException(status_code=400, detail="Blocked: lead phone is your own test number — run /api/discover for real leads")
+
+    # Send directly to the stranger's scraped public phone number using this user's WA Engine
+    result = send_whatsapp_message(prospect.public_phone, draft, user_id)
+    if not result or result.get("status") != "sent":
+        err = (result or {}).get("error", "WhatsApp service unreachable/not connected") if isinstance(result, dict) else "WhatsApp service unreachable/not connected"
+        raise HTTPException(status_code=502, detail=f"Not sent: {err}")
+    log_message(db, prospect.id, "OUTBOUND", draft, "SENT")
     
     prospect.pipeline_state = models.PipelineState.CONTACTED
     db.commit()
@@ -72,8 +99,8 @@ app.add_middleware(
 )
 
 @app.get("/api/dashboard")
-def get_dashboard_data(db: Session = Depends(get_db)):
-    prospects = db.query(models.Prospect).all()
+def get_dashboard_data(user_id: str, db: Session = Depends(get_db)):
+    prospects = db.query(models.Prospect).filter(models.Prospect.user_id == user_id).all()
     metrics = {
         "total_leads": len(prospects),
         "new": sum(1 for p in prospects if p.pipeline_state == models.PipelineState.NEW),
@@ -133,7 +160,9 @@ async def receive_whatsapp(request: Request, db: Session = Depends(get_db)):
 async def receive_baileys(request: Request, db: Session = Depends(get_db)):
     """Receives inbound messages from our local Baileys Node server"""
     data = await request.json()
+    print("RAW WEBHOOK DATA:", data)
     try:
+        user_id = data.get("user_id", "default_user")
         msg = data.get("message", {})
         key = msg.get("key", {})
         remote_jid = key.get("remoteJid", "")
@@ -143,14 +172,15 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
         sender_phone_with_device = remote_jid.split("@")[0]
         sender_phone = sender_phone_with_device.split(":")[0]
         
-        prospect = db.query(models.Prospect).filter(models.Prospect.public_phone == sender_phone).first()
+        prospect = db.query(models.Prospect).filter(models.Prospect.public_phone == sender_phone, models.Prospect.user_id == user_id).first()
         
         # Human Takeover check
-        if prospect and from_me:
-            print(f"[AI MUTE PROTOCOL] Human replied to {sender_phone}. Muting AI.")
-            prospect.ai_muted = True
-            db.commit()
-            return {"status": "muted"}
+        if from_me:
+            if prospect:
+                print(f"[AI MUTE PROTOCOL] Human replied to {sender_phone}. Muting AI.")
+                prospect.ai_muted = True
+                db.commit()
+            return {"status": "muted_or_ignored"}
             
         if prospect and prospect.ai_muted:
             print(f"[AI MUTED] Ignored inbound message from {sender_phone}")
@@ -163,11 +193,21 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
         
         if text and sender_phone:
             print(f"NEW INBOUND FROM BAILEYS {sender_phone}: {text}")
+            from backend.outreach_queue import is_opt_out, log_message
+            if prospect:
+                log_message(db, prospect.id, "INBOUND", text, "RECEIVED")
+            if prospect and is_opt_out(text):
+                prospect.pipeline_state = models.PipelineState.DO_NOT_CONTACT
+                db.commit()
+                print(f"[OPT-OUT] {sender_phone} -> DO_NOT_CONTACT")
+                from backend.whatsapp_provider import send_whatsapp_message as _send
+                _send(sender_phone, "Understood — we won't message you again.", user_id)
+                return {"status": "opted-out"}
             from backend.agent import process_message
-            ai_reply = process_message(text, sender_phone, db)
+            ai_reply = process_message(text, sender_phone, db, user_id)
             
             from backend.whatsapp_provider import send_whatsapp_message
-            send_whatsapp_message(sender_phone, ai_reply)
+            send_whatsapp_message(sender_phone, ai_reply, user_id)
             
     except Exception as e:
         print(f"Baileys webhook error: {e}")

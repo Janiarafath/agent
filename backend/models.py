@@ -22,6 +22,7 @@ class Prospect(Base):
     __tablename__ = "prospects"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user") # Firebase Auth UID
     company_name = Column(String, index=True)
     website = Column(String)
     industry = Column(String)

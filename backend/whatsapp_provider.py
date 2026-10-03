@@ -1,7 +1,7 @@
 import os
 import requests
 
-def send_whatsapp_message(to_phone: str, message: str):
+def send_whatsapp_message(to_phone: str, message: str, user_id: str = "default_user"):
     # We now talk to our local Baileys Node server instead of Meta!
     url = "http://127.0.0.1:3001/api/send"
     
@@ -10,7 +10,8 @@ def send_whatsapp_message(to_phone: str, message: str):
     
     payload = {
         "to": clean_phone,
-        "text": message
+        "text": message,
+        "user_id": user_id
     }
     
     print(f"Sending WhatsApp message to {clean_phone} via Baileys API...")

@@ -2,19 +2,21 @@ import os
 from groq import Groq
 from backend import models
 
-def process_message(user_message: str, sender_phone: str, db) -> str:
+def process_message(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Routes the message to either the Admin (CEO) or a Prospect"""
     # Using your exact phone number from the logs as the Admin
     admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
     
     if sender_phone == admin_phone:
-        return admin_agent(user_message, db)
+        return admin_agent(user_message, db, user_id)
     else:
-        return prospect_agent(user_message, sender_phone, db)
+        return prospect_agent(user_message, sender_phone, db, user_id)
 
-def admin_agent(user_message: str, db) -> str:
+def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
     """Handles commands from the CEO (You)"""
-    groq_api_key = os.getenv("GROQ_API_KEY", "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")
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_api_key:
+        return "Boss, set GROQ_API_KEY in environment first — AI is disabled."
     client = Groq(api_key=groq_api_key)
     
     # 1. Determine Intent (Upgraded Brain)
@@ -110,15 +112,18 @@ def generate_gmeet_link():
     chars = string.ascii_lowercase
     return f"https://meet.google.com/{''.join(random.choices(chars, k=3))}-{''.join(random.choices(chars, k=4))}-{''.join(random.choices(chars, k=3))}"
 
-def prospect_agent(user_message: str, sender_phone: str, db) -> str:
+def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Handles inbound replies from Prospects and uses Tools to book meetings"""
     import json
-    groq_api_key = os.getenv("GROQ_API_KEY", "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")
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_api_key:
+        return "Thanks for replying! Our team will get back to you shortly."
     client = Groq(api_key=groq_api_key)
         
     try:
         last_prospect = db.query(models.Prospect).filter(
-            models.Prospect.pipeline_state.in_([models.PipelineState.CONTACTED, models.PipelineState.WAITING, models.PipelineState.REPLIED])
+            models.Prospect.pipeline_state.in_([models.PipelineState.CONTACTED, models.PipelineState.WAITING, models.PipelineState.REPLIED]),
+            models.Prospect.user_id == user_id
         ).first()
         
         context = ""

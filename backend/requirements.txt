@@ -10,6 +10,8 @@ redis
 litellm
 langgraph
 requests
+phonenumbers
+groq
 google-generativeai
 tavily-python
 apscheduler

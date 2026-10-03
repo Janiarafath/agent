@@ -21,7 +21,7 @@ interface DashboardData {
   }[];
 }
 
-const API_BASE = "https://agent-k70h.onrender.com";
+const API_BASE = "http://127.0.0.1:8000";
 const WHATSAPP_API = "http://127.0.0.1:3001";
 
 export default function Dashboard() {
@@ -48,7 +48,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!user) return;
     const fetchDashboard = () => {
-      fetch(`${API_BASE}/api/dashboard`)
+      fetch(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
         .then((res) => res.json())
         .then((data) => { setData(data); setLoading(false); })
         .catch((err) => { setError(err.message); setLoading(false); });
@@ -62,7 +62,7 @@ export default function Dashboard() {
     if (!user) return;
     const checkWaStatus = async () => {
         try {
-            const res = await fetch(`${WHATSAPP_API}/api/whatsapp/status`);
+            const res = await fetch(`${WHATSAPP_API}/api/whatsapp/status?userId=${user.uid}`);
             const json = await res.json();
             setWaConnected(json.connected);
             if (json.qr && !json.connected) setQrCode(json.qr);
@@ -88,25 +88,34 @@ export default function Dashboard() {
   };
 
   const triggerDiscovery = async () => {
+    if (!user) return;
     setIsTriggering(true);
     try {
-      await fetch(`${API_BASE}/api/trigger-discovery`, { 
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: searchQuery || "B2B SaaS companies" })
+      const raw = searchQuery || "dentists in Riyadh, Saudi Arabia";
+      // parse "dentists in Chennai" -> category + city for autonomous pipeline (no CSV)
+      const m = raw.match(/(.+?)\s+in\s+(.+)/i);
+      const category = (m ? m[1] : raw).trim();
+      const city = (m ? m[2] : "Riyadh, Saudi Arabia").trim();
+      await fetch(`${API_BASE}/api/discover`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category, city, user_id: user.uid, max_results: 25 })
       });
-      alert(`Autonomous Discovery Job Queued`);
+      alert(`Autonomous Discovery Queued: ${category} in ${city}`);
     } catch (err) {}
     setIsTriggering(false);
   };
 
   const triggerFollowups = async () => {
+    if (!user) return;
     setIsFollowup(true);
     try { await fetch(`${API_BASE}/api/trigger-followups`, { method: "POST" }); } catch (err) {}
     setIsFollowup(false);
   };
   
   const approveOutreach = async (id: number) => {
+    if (!user) return;
     if (!waConnected) { alert("Please connect WhatsApp first!"); setShowQRModal(true); return; }
-    try { await fetch(`${API_BASE}/api/approve/${id}`, { method: "POST" }); } catch (err) {}
+    try { await fetch(`${API_BASE}/api/approve/${id}?user_id=${user.uid}`, { method: "POST" }); } catch (err) {}
   };
 
   if (!user) {
