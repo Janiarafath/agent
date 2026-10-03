@@ -69,7 +69,12 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
         raise HTTPException(status_code=404, detail="Prospect not found")
     ok, reason = can_send(db, prospect, user_id)
     if not ok:
-        raise HTTPException(status_code=429, detail=f"Blocked: {reason}")
+        # 429 only for real rate-limit; everything else 403 with plain reason
+        if reason.startswith("daily-cap"):
+            raise HTTPException(status_code=429, detail=f"Daily cap reached ({reason}). Try tomorrow.")
+        if reason == "outside-work-hours-recipient":
+            raise HTTPException(status_code=403, detail="Outside recipient work hours (8am-8pm). Try again 8am-8pm IST.")
+        raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
     draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
 
     # Self-DM guard: never send to own admin/test number

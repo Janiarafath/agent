@@ -115,10 +115,20 @@ export default function Dashboard() {
     setIsFollowup(false);
   };
   
+  const [approvingId, setApprovingId] = useState<number | null>(null);
   const approveOutreach = async (id: number) => {
     if (!user) return;
     if (!waConnected) { alert("Please connect WhatsApp first!"); setShowQRModal(true); return; }
-    try { await fetch(`${API_BASE}/api/approve/${id}?user_id=${user.uid}`, { method: "POST" }); } catch (err) {}
+    setApprovingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/approve/${id}?user_id=${user.uid}`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
+      alert("Sent!");
+    } catch (err: any) {
+      alert(`Not sent: ${err?.message || err}`);
+    }
+    setApprovingId(null);
   };
 
   if (!user) {
@@ -340,10 +350,11 @@ export default function Dashboard() {
                   {p.ai_muted && <ShieldAlert className="absolute top-3 right-3 w-4 h-4 text-red-500" />}
                   <p className="text-sm font-bold text-slate-800 pr-5">{p.company_name}</p>
                   <button 
-                      onClick={() => approveOutreach(p.id)} 
-                      className="mt-3 w-full bg-purple-50 hover:bg-purple-100 text-purple-600 text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      onClick={() => approveOutreach(p.id)}
+                      disabled={approvingId === p.id}
+                      className="mt-3 w-full bg-purple-50 hover:bg-purple-100 disabled:opacity-50 text-purple-600 text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1"
                   >
-                      Approve <ChevronRight className="w-3 h-3" />
+                      {approvingId === p.id ? "Sending..." : <>Approve <ChevronRight className="w-3 h-3" /></>}
                   </button>
                 </div>
               ))}
