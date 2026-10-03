@@ -91,17 +91,20 @@ export default function Dashboard() {
     if (!user) return;
     setIsTriggering(true);
     try {
-      const raw = searchQuery || "dentists in Riyadh, Saudi Arabia";
-      // parse "dentists in Chennai" -> category + city for autonomous pipeline (no CSV)
-      const m = raw.match(/(.+?)\s+in\s+(.+)/i);
-      const category = (m ? m[1] : raw).trim();
-      const city = (m ? m[2] : "Riyadh, Saudi Arabia").trim();
-      await fetch(`${API_BASE}/api/discover`, {
+      const raw = (searchQuery || "dentists in Chennai, India").trim();
+      // flexible parse: "dentists in Chennai", "dentist at chennai", "dentists chennai", "dentists"
+      let category = raw, city = "Chennai, India";
+      const m = raw.match(/(.+?)\s+(?:in|at|,)\s+(.+)/i);
+      if (m) { category = m[1].trim(); city = m[2].trim(); }
+      const res = await fetch(`${API_BASE}/api/discover`, {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ category, city, user_id: user.uid, max_results: 25 })
       });
-      alert(`Autonomous Discovery Queued: ${category} in ${city}`);
-    } catch (err) {}
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      alert(`Discovery queued: ${category} in ${city}. Watch Review column in ~1-2 min.`);
+    } catch (err: any) {
+      alert(`Launch failed: ${err?.message || err}. Is backend on :8000?`);
+    }
     setIsTriggering(false);
   };
 

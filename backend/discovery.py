@@ -104,11 +104,11 @@ def search_osm(category: str, city: str, limit: int = 30):
     mirrors = [OVERPASS_URL, "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"]
     for url in mirrors:
         try:
-            r = requests.post(url, data=query, headers={"User-Agent": "GrowthPilot/1.0", "Content-Type": "application/x-www-form-urlencoded"}, timeout=30)
+            r = requests.post(url, data=query, headers={"User-Agent": "GrowthPilot/1.0", "Content-Type": "application/x-www-form-urlencoded"}, timeout=15)
             r.raise_for_status()
             break
         except Exception as e:
-            print(f"[DISCOVERY] OSM mirror {url} fail: {e}")
+            print(f"[DISCOVERY] OSM mirror {url} fail: {e}", flush=True)
             r = None
             continue
     if r is None:
@@ -267,10 +267,10 @@ def discover_leads(category: str, city: str, max_results: int = 30):
     """Main entry: 100% FREE — OSM + website crawl + Tavily (Places API optional bonus)."""
     seen = set()
     results = []
-    osm = search_osm(category, city, limit=max_results)
+    tavily_leads = search_tavily_free(category, city, limit=10)  # FREE + fast + has phones
+    osm = search_osm(category, city, limit=max_results)  # slow, often phoneless
     places = search_google_places(category, city, limit=max_results)  # [] unless key set
-    tavily_leads = search_tavily_free(category, city, limit=10)  # FREE with existing key
-    combined = places + osm + tavily_leads  # prefer official Places first, then free
+    combined = places + tavily_leads + osm  # fast phone-rich sources first
     for lead in combined:
         phone = normalize_e164(lead.get("raw_phone", ""), city=city)
         email = ""
