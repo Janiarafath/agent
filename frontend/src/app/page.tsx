@@ -22,7 +22,9 @@ interface DashboardData {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-const WHATSAPP_API = process.env.NEXT_PUBLIC_WHATSAPP_API || "http://127.0.0.1:3001";
+// WA status goes through the backend proxy so hosted dashboards work
+// (set NEXT_PUBLIC_WHATSAPP_API only for direct local access).
+const WHATSAPP_API = process.env.NEXT_PUBLIC_WHATSAPP_API || process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:3001";
 
 export default function Dashboard() {
   const { user, loginWithEmail, registerWithEmail } = useAuth();

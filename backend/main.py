@@ -113,6 +113,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import requests as _rq
+_WA_LOCAL = "http://127.0.0.1:3001"
+
+@app.get("/api/whatsapp/status")
+def wa_status_proxy(userId: str = "default_user"):
+    """Public QR/status for dashboards that can't reach the WA port directly
+    (e.g. Vercel frontend -> Koyeb backend). Proxies the local WA engine."""
+    try:
+        r = _rq.get(f"{_WA_LOCAL}/api/whatsapp/status", params={"userId": userId}, timeout=20)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
+
 @app.get("/api/settings")
 def get_settings(user_id: str, db: Session = Depends(get_db)):
     """Owner settings (boss alert number, ...)."""
