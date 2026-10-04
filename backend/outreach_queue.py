@@ -27,6 +27,33 @@ def get_tz_for_location(location: str = ""):
     return RIYADH
 
 
+def _digits(s: str) -> str:
+    return "".join(filter(str.isdigit, s or ""))
+
+
+def same_number(a: str, b: str) -> bool:
+    """Country-code-tolerant compare: match full digits or last-10 suffix."""
+    da, db_ = _digits(a), _digits(b)
+    if not da or not db_:
+        return False
+    if da == db_:
+        return True
+    return len(da) >= 10 and len(db_) >= 10 and da[-10:] == db_[-10:]
+
+
+def get_admin_phone(db: Session, user_id: str) -> str:
+    """Owner's boss number: dashboard setting first, env fallback. Never hardcoded."""
+    try:
+        s = db.query(models.UserSettings).filter(
+            models.UserSettings.user_id == user_id).first()
+        if s and (s.admin_phone or "").strip():
+            return s.admin_phone.strip()
+    except Exception:
+        pass
+    import os as _os
+    return (_os.getenv("ADMIN_PHONE_NUMBER", "") or "").strip()
+
+
 def is_opt_out(text: str) -> bool:
     if not text:
         return False

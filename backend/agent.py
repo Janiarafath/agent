@@ -4,10 +4,15 @@ from backend import models
 
 def process_message(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Routes the message to either the Admin (CEO) or a Prospect"""
-    # No hardcoded boss number: owner sets it in dashboard (UserSettings) or env.
-    admin_phone = (os.getenv("ADMIN_PHONE_NUMBER", "") or "").strip()
+    # No hardcoded boss number: dashboard setting (UserSettings) first, env fallback.
+    # Suffix-tolerant so +91XXXXXXXXXX matches XXXXXXXXXX.
+    from backend.outreach_queue import get_admin_phone, same_number
+    try:
+        admin_phone = get_admin_phone(db, user_id)
+    except Exception:
+        admin_phone = ""
 
-    if admin_phone and sender_phone == admin_phone:
+    if admin_phone and same_number(sender_phone, admin_phone):
         return admin_agent(user_message, db, user_id)
     else:
         return prospect_agent(user_message, sender_phone, db, user_id)

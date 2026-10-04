@@ -77,13 +77,17 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
         raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
     draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
 
-    # Self-DM guard: never send to the owner's own number (set in dashboard).
+    # Self-DM guard: never send to the owner's own number (dashboard setting).
     import os as _os
-    admin_digits = "".join(filter(str.isdigit, (_os.getenv("ADMIN_PHONE_NUMBER", "") or "")))
+    from backend.outreach_queue import same_number, get_admin_phone
+    try:
+        admin_digits = get_admin_phone(db, user_id)
+    except Exception:
+        admin_digits = _os.getenv("ADMIN_PHONE_NUMBER", "") or ""
     target_digits = "".join(filter(str.isdigit, prospect.public_phone or ""))
     if not target_digits:
         raise HTTPException(status_code=400, detail="Prospect has no phone number")
-    if admin_digits and (target_digits == admin_digits or target_digits.lstrip("91") == admin_digits.lstrip("91")):
+    if admin_digits and same_number(target_digits, admin_digits):
         raise HTTPException(status_code=400, detail="Blocked: lead phone is your own number — run /api/discover for real leads")
 
     # Send directly to the stranger's scraped public phone number using this user's WA Engine

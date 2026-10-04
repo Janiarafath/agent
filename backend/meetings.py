@@ -130,15 +130,11 @@ def book_meeting_for_prospect(db: Session, prospect: models.Prospect, meeting_ti
     # Notify boss on WhatsApp (number set by owner in dashboard Settings).
     try:
         from backend.whatsapp_provider import send_whatsapp_message
-        admin_phone = ""
+        from backend.outreach_queue import get_admin_phone
         try:
-            s = db.query(models.UserSettings).filter(
-                models.UserSettings.user_id == user_id).first()
-            if s and s.admin_phone:
-                admin_phone = s.admin_phone
+            admin_phone = get_admin_phone(db, user_id)
         except Exception:
-            pass
-        admin_phone = admin_phone or os.getenv("ADMIN_PHONE_NUMBER", "")
+            admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "")
         if admin_phone:
             send_whatsapp_message(
                 admin_phone,
