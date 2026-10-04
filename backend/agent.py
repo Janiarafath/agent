@@ -4,10 +4,10 @@ from backend import models
 
 def process_message(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Routes the message to either the Admin (CEO) or a Prospect"""
-    # Using your exact phone number from the logs as the Admin
-    admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
-    
-    if sender_phone == admin_phone:
+    # No hardcoded boss number: owner sets it in dashboard (UserSettings) or env.
+    admin_phone = (os.getenv("ADMIN_PHONE_NUMBER", "") or "").strip()
+
+    if admin_phone and sender_phone == admin_phone:
         return admin_agent(user_message, db, user_id)
     else:
         return prospect_agent(user_message, sender_phone, db, user_id)
@@ -200,6 +200,17 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
             link = holder.get("link", "")
             when = holder.get("time", "") or "the agreed time"
             if not link and last_prospect is not None:
+                # AUTO-BOOK ONLY ON PROSPECT AGREEMENT. Never book because the
+                # model merely promised a link — that caused a false HOT LEAD.
+                pm = (user_message or "").lower()
+                agreed = (_extract_time(user_message) is not None or any(
+                    w in pm for w in ("yes", "yeah", "yep", "ok", "okay", "sure",
+                                      "works", "book", "confirm", "deal", "done",
+                                      "agreed", "perfect", "great", "fine")))
+                if not agreed:
+                    print(f"[AGENT] link promised w/o prospect agreement — no booking")
+                    cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
+                    return (cleaned + " I'll drop it here shortly.").strip()
                 tm = _extract_time(user_message + " " + reply_text) or "tomorrow at 2 PM"
                 try:
                     book_meeting(tm, f"{company_name} agreed to talk")

@@ -67,8 +67,16 @@ class Meeting(Base):
 
     meeting_time = Column(String)  # as agreed, e.g. "tomorrow at 2 PM"
     meet_link = Column(String)     # real joinable URL (jitsi now, google when OAuth added)
-    provider = Column(String, default="jitsi")  # "jitsi" | "google"
+    provider = Column(String, default="jitsi")  # "jitsi" | "zoom" | "google"
     interest = Column(String, default="")  # why they're interested / sentiment
     status = Column(String, default="BOOKED")  # BOOKED | DONE | CANCELLED
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserSettings(Base):
+    """Per-owner settings managed from the dashboard (boss alert number, ...)."""
+    __tablename__ = "user_settings"
+
+    user_id = Column(String, primary_key=True)
+    admin_phone = Column(String, default="")  # boss WhatsApp number for HOT LEAD pings
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -123,6 +123,33 @@ export default function Dashboard() {
   };
   
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [bossPhone, setBossPhone] = useState("");
+  const [savingBoss, setSavingBoss] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`${API_BASE}/api/settings?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { if (data.admin_phone) setBossPhone(data.admin_phone); })
+      .catch(() => {});
+  }, [user]);
+
+  const saveBossPhone = async () => {
+    if (!user) return;
+    setSavingBoss(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/settings`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, admin_phone: bossPhone })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
+      alert(`Boss alerts ON → ${json.admin_phone || "cleared"}`);
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    }
+    setSavingBoss(false);
+  };
   const approveOutreach = async (id: number) => {
     if (!user) return;
     if (!waConnected) { alert("Please connect WhatsApp first!"); setShowQRModal(true); return; }
@@ -280,6 +307,29 @@ export default function Dashboard() {
                       Launch Campaign
                   </button>
               </div>
+          </div>
+          <div className="flex flex-col md:flex-row gap-4 items-end mt-4">
+              <div className="flex-1 w-full">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 block">Boss WhatsApp number (HOT LEAD alerts)</label>
+                  <div className="relative group">
+                      <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+                      <input
+                          type="text"
+                          placeholder="E.g. 919876543210 — you set this, no hardcoded number"
+                          value={bossPhone}
+                          onChange={(e) => setBossPhone(e.target.value)}
+                          className="w-full bg-white/80 border border-slate-200 rounded-xl py-3 pl-11 pr-4 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-emerald-300 focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm"
+                      />
+                  </div>
+              </div>
+              <button
+                  onClick={saveBossPhone}
+                  disabled={savingBoss}
+                  className="h-[46px] px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                  {savingBoss ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Save alerts
+              </button>
           </div>
       </div>
         

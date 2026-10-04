@@ -77,14 +77,14 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
         raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
     draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
 
-    # Self-DM guard: never send to own admin/test number
+    # Self-DM guard: never send to the owner's own number (set in dashboard).
     import os as _os
-    admin_digits = "".join(filter(str.isdigit, _os.getenv("ADMIN_PHONE_NUMBER", "918148647818")))
+    admin_digits = "".join(filter(str.isdigit, (_os.getenv("ADMIN_PHONE_NUMBER", "") or "")))
     target_digits = "".join(filter(str.isdigit, prospect.public_phone or ""))
     if not target_digits:
         raise HTTPException(status_code=400, detail="Prospect has no phone number")
-    if target_digits == admin_digits or target_digits.lstrip("91") == admin_digits.lstrip("91"):
-        raise HTTPException(status_code=400, detail="Blocked: lead phone is your own test number — run /api/discover for real leads")
+    if admin_digits and (target_digits == admin_digits or target_digits.lstrip("91") == admin_digits.lstrip("91")):
+        raise HTTPException(status_code=400, detail="Blocked: lead phone is your own number — run /api/discover for real leads")
 
     # Send directly to the stranger's scraped public phone number using this user's WA Engine
     result = send_whatsapp_message(prospect.public_phone, draft, user_id)
@@ -112,6 +112,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/api/settings")
+def get_settings(user_id: str, db: Session = Depends(get_db)):
+    """Owner settings (boss alert number, ...)."""
+    s = db.query(models.UserSettings).filter(models.UserSettings.user_id == user_id).first()
+    return {"admin_phone": (s.admin_phone if s and s.admin_phone else "")}
+
+
+class SettingsRequest(BaseModel):
+    user_id: str = "default_user"
+    admin_phone: str = ""
+
+
+@app.post("/api/settings")
+def save_settings(request: SettingsRequest, db: Session = Depends(get_db)):
+    """Save owner settings from dashboard (boss WhatsApp number for HOT LEAD pings)."""
+    digits = "".join(filter(str.isdigit, request.admin_phone or ""))
+    s = db.query(models.UserSettings).filter(models.UserSettings.user_id == request.user_id).first()
+    if not s:
+        s = models.UserSettings(user_id=request.user_id, admin_phone=digits)
+        db.add(s)
+    else:
+        s.admin_phone = digits
+    db.commit()
+    return {"status": "saved", "admin_phone": digits}
+
 
 @app.get("/api/meetings")
 def get_meetings(user_id: str, db: Session = Depends(get_db)):

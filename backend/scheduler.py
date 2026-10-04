@@ -151,7 +151,6 @@ def run_autonomous_followups():
             model = None
             
         followups_sent = 0
-        admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "918148647818")
         from backend.whatsapp_provider import send_whatsapp_message
         
         import time

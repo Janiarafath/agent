@@ -127,10 +127,18 @@ def book_meeting_for_prospect(db: Session, prospect: models.Prospect, meeting_ti
     db.commit()
     db.refresh(meeting)
 
-    # Notify boss on WhatsApp (their own linked number session sends to admin)
+    # Notify boss on WhatsApp (number set by owner in dashboard Settings).
     try:
         from backend.whatsapp_provider import send_whatsapp_message
-        admin_phone = os.getenv("ADMIN_PHONE_NUMBER", "")
+        admin_phone = ""
+        try:
+            s = db.query(models.UserSettings).filter(
+                models.UserSettings.user_id == user_id).first()
+            if s and s.admin_phone:
+                admin_phone = s.admin_phone
+        except Exception:
+            pass
+        admin_phone = admin_phone or os.getenv("ADMIN_PHONE_NUMBER", "")
         if admin_phone:
             send_whatsapp_message(
                 admin_phone,
@@ -138,6 +146,8 @@ def book_meeting_for_prospect(db: Session, prospect: models.Prospect, meeting_ti
                 f"{' — ' + interest if interest else ''}. Agreed: {meeting_time}.\nJoin: {link}",
                 user_id,
             )
+        else:
+            print("[MEETINGS] no boss number set — dashboard only")
     except Exception as e:
         print(f"[MEETINGS] boss ping fail: {e}")
     print(f"[MEETINGS] booked {prospect.company_name} @ {meeting_time} -> {link}")
