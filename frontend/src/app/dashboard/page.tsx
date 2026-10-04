@@ -105,6 +105,8 @@ export default function DashboardPage() {
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [bossPhone, setBossPhone] = useState("");
   const [savingBoss, setSavingBoss] = useState(false);
+  // ALL hooks must stay above every early return (React #310 otherwise).
+  const [activeStage, setActiveStage] = useState<string>("review");
 
   useEffect(() => {
     if (!user) return;
@@ -185,7 +187,6 @@ export default function DashboardPage() {
   ];
   const inStage = (state: string, match: string[]) =>
     match.some((s) => state === s || state === `PipelineState.${s}`);
-  const [activeStage, setActiveStage] = useState<string>("review");
   const stageLeads = (data?.pipeline || []).filter((p) =>
     inStage(p.pipeline_state, stages.find((s) => s.key === activeStage)?.match || []));
   const stageCount = (key: string) =>
