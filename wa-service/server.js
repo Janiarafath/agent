@@ -137,12 +137,18 @@ app.post('/api/send', async (req, res) => {
     const st = getRT(userId);
     if (!st.sock || !st.connected) return res.status(400).json({ status: 'error', error: `WhatsApp not connected for user ${userId} - scan QR first` });
     try {
-        const digits = String(to || '').replace(/\D/g, '');
-        let jid = st.jidCache[digits];
-        if (!jid) {
-            const out = await st.sock.onWhatsApp(digits);
-            jid = (out && out[0] && out[0].exists && out[0].jid) ? out[0].jid : digits + '@s.whatsapp.net';
-            st.jidCache[digits] = jid;
+        const raw = String(to || '').trim();
+        let jid;
+        if (raw.includes('@')) {
+            jid = raw; // full JID passed through (lid-safe)
+        } else {
+            const digits = raw.replace(/\D/g, '');
+            jid = st.jidCache[digits] || null;
+            if (!jid) {
+                const out = await st.sock.onWhatsApp(digits);
+                jid = (out && out[0] && out[0].exists && out[0].jid) ? out[0].jid : digits + '@s.whatsapp.net';
+                st.jidCache[digits] = jid;
+            }
         }
         console.log(`[BAILEYS] ${userId} -> ${jid}`);
         await st.sock.sendMessage(jid, { text: String(text || '') });

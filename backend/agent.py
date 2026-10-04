@@ -123,6 +123,8 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
         
         context = ""
         company_name = "a prospect"
+        booked_link = ""
+        booked_time = ""
         if last_prospect:
             company_name = last_prospect.company_name
             # If they are replying, ensure state is REPLIED
@@ -130,6 +132,19 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                 last_prospect.pipeline_state = models.PipelineState.REPLIED
             db.commit()
             context = f"Context: You reached out to a company named {company_name} about AI Sales Automation. They just replied."
+            # If a meeting is already booked, the agent must know the real link
+            # (so "where is link?" never gets a placeholder or an error).
+            try:
+                existing = db.query(models.Meeting).filter(
+                    models.Meeting.prospect_id == last_prospect.id,
+                    models.Meeting.status == "BOOKED").order_by(models.Meeting.id.desc()).first()
+                if existing:
+                    booked_link = existing.meet_link
+                    booked_time = existing.meeting_time
+                    context += (f" Already BOOKED meeting: {existing.meeting_time} with join link "
+                                f"{existing.meet_link}. If they ask for the link/time, give THIS exact link.")
+            except Exception as e:
+                print(f"[AGENT] meeting lookup fail: {e}")
 
         # Define the AI Tool (real joinable link + boss notified in WhatsApp + dashboard)
         def book_meeting(meeting_time: str, interest: str = "") -> str:
@@ -142,11 +157,14 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                         interest=interest or f"{company_name} showed interest and agreed to talk",
                         user_id=user_id,
                     )
+                    holder["link"] = meeting.meet_link
+                    holder["time"] = meeting.meeting_time
                     return f"Success. The meeting link is {meeting.meet_link}."
                 except Exception as e:
                     print(f"[AGENT] meeting book fail: {e}")
                     return "Booking failed, tell them our team will confirm shortly."
             return "No prospect context to book against."
+        holder = {"link": booked_link, "time": booked_time}
 
         tools = [{
             "type": "function",
@@ -196,7 +214,7 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
             tool_call = response_message.tool_calls[0]
             if tool_call.function.name == "book_meeting":
                 args = json.loads(tool_call.function.arguments)
-                tool_result = book_meeting(args.get("meeting_time", "soon"))
+                tool_result = book_meeting(args.get("meeting_time", "soon"), args.get("interest", ""))
                 
                 messages.append({
                     "role": "assistant",
@@ -223,11 +241,24 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                     model="qwen/qwen3.8-27b",
                     messages=messages
                 )
-                reply_text = second_response.choices[0].message.content.strip()
+                reply_text = (second_response.choices[0].message.content or "").strip()
+                # HARD GUARANTEE: a real link must reach the prospect. The model
+                # sometimes writes "[Meeting Link]" placeholders or drops the URL —
+                # never let that go out. Deterministic fallback wins.
+                link = holder.get("link", "")
+                when = holder.get("time", "") or "the agreed time"
+                if link and ("http" not in reply_text or "[Meeting Link]" in reply_text or "[link]" in reply_text.lower()):
+                    reply_text = f"Perfect, locked in for {when}. Join here: {link} — see you then!"
+                    print(f"[AGENT] placeholder guard fired, deterministic reply used")
                 print(f"AI DRAFT (Tool Used): {reply_text}")
                 return reply_text
                 
-        reply_text = response_message.content.strip()
+        reply_text = (response_message.content or "").strip()
+        # Same guard for non-tool replies when a meeting already exists
+        # (e.g. prospect asks "where is link?").
+        if holder.get("link") and ("where" in user_message.lower() and "link" in user_message.lower()) and "http" not in reply_text:
+            reply_text = f"Here you go: {holder['link']} for {holder.get('time', 'our call')} — see you then!"
+            print(f"[AGENT] existing-meeting guard fired")
         print(f"AI DRAFT: {reply_text}")
         return reply_text
         

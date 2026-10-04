@@ -91,6 +91,14 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
     if not result or result.get("status") != "sent":
         err = (result or {}).get("error", "WhatsApp service unreachable/not connected") if isinstance(result, dict) else "WhatsApp service unreachable/not connected"
         raise HTTPException(status_code=502, detail=f"Not sent: {err}")
+    # Remember the real JID (often a LID) so replies map back to this prospect
+    try:
+        sig = dict(prospect.business_signals or {})
+        if result.get("jid"):
+            sig["jid"] = result["jid"]
+            prospect.business_signals = sig
+    except Exception:
+        pass
     log_message(db, prospect.id, "OUTBOUND", draft, "SENT")
     
     prospect.pipeline_state = models.PipelineState.CONTACTED
@@ -189,11 +197,34 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
         remote_jid = key.get("remoteJid", "")
         from_me = key.get("fromMe", False)
         
-        # Extract phone regardless of colon or @ domain
+        # Extract phone regardless of colon or @ domain.
+        # NOTE: modern WhatsApp uses LIDs (long numbers) as JIDs; the contact's
+        # real phone may differ. Match prospects by phone OR by stored JID.
         sender_phone_with_device = remote_jid.split("@")[0]
         sender_phone = sender_phone_with_device.split(":")[0]
-        
-        prospect = db.query(models.Prospect).filter(models.Prospect.public_phone == sender_phone, models.Prospect.user_id == user_id).first()
+
+        def _find_prospect(db, sender_phone, remote_jid, user_id):
+            p = db.query(models.Prospect).filter(
+                models.Prospect.public_phone == sender_phone,
+                models.Prospect.user_id == user_id).first()
+            if p:
+                return p
+            # LID fallback: compare against JIDs learned on previous sends
+            jid_digits = "".join(filter(str.isdigit, remote_jid.split("@")[0]))
+            cands = db.query(models.Prospect).filter(
+                models.Prospect.user_id == user_id,
+                models.Prospect.pipeline_state.in_([
+                    models.PipelineState.CONTACTED, models.PipelineState.WAITING,
+                    models.PipelineState.REPLIED, models.PipelineState.INTERESTED,
+                ])).all()
+            for c in cands:
+                sig = c.business_signals or {}
+                for k in ("jid", "last_jid"):
+                    if sig.get(k) and "".join(filter(str.isdigit, str(sig[k]).split("@")[0])) == jid_digits:
+                        return c
+            return None
+
+        prospect = _find_prospect(db, sender_phone, remote_jid, user_id)
         
         # Human Takeover check
         if from_me:
@@ -222,13 +253,20 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                 db.commit()
                 print(f"[OPT-OUT] {sender_phone} -> DO_NOT_CONTACT")
                 from backend.whatsapp_provider import send_whatsapp_message as _send
-                _send(sender_phone, "Understood — we won't message you again.", user_id)
+                _send(remote_jid, "Understood — we won't message you again.", user_id)
                 return {"status": "opted-out"}
             from backend.agent import process_message
             ai_reply = process_message(text, sender_phone, db, user_id)
-            
+
             from backend.whatsapp_provider import send_whatsapp_message
-            send_whatsapp_message(sender_phone, ai_reply, user_id)
+            # Send to the full JID (LID-safe), not bare digits
+            result = send_whatsapp_message(remote_jid, ai_reply, user_id)
+            if prospect:
+                try:
+                    ok = isinstance(result, dict) and result.get("status") == "sent"
+                    log_message(db, prospect.id, "OUTBOUND", ai_reply, "SENT" if ok else "FAILED")
+                except Exception:
+                    pass
             
     except Exception as e:
         print(f"Baileys webhook error: {e}")
