@@ -130,9 +130,24 @@ def wa_status_proxy(userId: str = "default_user"):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
 
+class ClientLogRequest(BaseModel):
+    where: str = ""
+    message: str = ""
+    stack: str = ""
+    url: str = ""
+
+
+@app.post("/api/client-log")
+def client_log(request: ClientLogRequest):
+    """Receives browser crash reports from the dashboard global-error trap."""
+    print(f"[CLIENT-LOG] {request.where} @ {request.url}: {request.message[:300]}")
+    if request.stack:
+        print(f"[CLIENT-LOG] stack: {request.stack[:500]}")
+    return {"status": "logged"}
+
+
 @app.get("/api/settings")
-def get_settings(user_id: str, db: Session = Depends(get_db)):
-    """Owner settings (boss alert number, ...)."""
+def get_settings(user_id: str, db: Session = Depends(get_db)):    """Owner settings (boss alert number, ...)."""
     s = db.query(models.UserSettings).filter(models.UserSettings.user_id == user_id).first()
     return {"admin_phone": (s.admin_phone if s and s.admin_phone else "")}
 
