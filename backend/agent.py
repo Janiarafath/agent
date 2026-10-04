@@ -3,7 +3,8 @@ from groq import Groq
 from backend import models
 
 def process_message(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
-    """Routes the message to either the Admin (CEO) or a Prospect"""
+    """Routes the message: owner (boss) -> admin, known prospect -> SDR,
+    stranger -> owner-assistant takeover mode (AI acts on owner's behalf)."""
     # No hardcoded boss number: dashboard setting (UserSettings) first, env fallback.
     # Suffix-tolerant so +91XXXXXXXXXX matches XXXXXXXXXX.
     from backend.outreach_queue import get_admin_phone, same_number
@@ -14,8 +15,30 @@ def process_message(user_message: str, sender_phone: str, db, user_id: str = "de
 
     if admin_phone and same_number(sender_phone, admin_phone):
         return admin_agent(user_message, db, user_id)
-    else:
-        return prospect_agent(user_message, sender_phone, db, user_id)
+
+    # Known prospect (we messaged them before, or inbound-created) -> SDR flow
+    try:
+        known = db.query(models.Prospect).filter(
+            models.Prospect.user_id == user_id,
+            models.Prospect.public_phone == sender_phone).first()
+        if not known:
+            # LID fallback via stored JIDs
+            cands = db.query(models.Prospect).filter(
+                models.Prospect.user_id == user_id).all()
+            digits = "".join(filter(str.isdigit, sender_phone or ""))
+            for c in cands:
+                sig = c.business_signals or {}
+                for k in ("jid", "last_jid"):
+                    if sig.get(k) and "".join(filter(str.isdigit, str(sig[k]).split("@")[0])) == digits:
+                        known = c
+                        break
+                if known:
+                    break
+        if known:
+            return prospect_agent(user_message, sender_phone, db, user_id)
+    except Exception as e:
+        print(f"[AGENT] prospect lookup fail: {e}")
+    return owner_assistant_agent(user_message, sender_phone, db, user_id)
 
 def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
     """Handles commands from the CEO (You)"""
@@ -130,6 +153,141 @@ def _extract_time(text: str) -> str | None:
         return f"{hh}{mm} {ap}"
     return None
 
+def owner_assistant_agent(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
+    """Takeover mode: a stranger messaged the owner's number. Act as the owner's
+    own assistant — warm, human, brief. Capture what they need, offer a call,
+    book it with a real link when they agree. Boss gets pinged on bookings."""
+    import json
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_api_key:
+        return "Hey! Thanks for messaging. The team will get back to you shortly."
+    client = Groq(api_key=groq_api_key)
+    try:
+        contact = db.query(models.Prospect).filter(
+            models.Prospect.public_phone == sender_phone,
+            models.Prospect.user_id == user_id).first()
+        if not contact:
+            contact = models.Prospect(
+                user_id=user_id, company_name=f"Chat {sender_phone[-6:]}",
+                public_phone=sender_phone, location="",
+                pipeline_state=models.PipelineState.REPLIED,
+                business_signals={"source": "inbound_takeover"})
+            db.add(contact)
+            db.commit()
+            db.refresh(contact)
+        elif contact.pipeline_state != models.PipelineState.INTERESTED:
+            contact.pipeline_state = models.PipelineState.REPLIED
+            db.commit()
+
+        existing = db.query(models.Meeting).filter(
+            models.Meeting.prospect_id == contact.id,
+            models.Meeting.status == "BOOKED").order_by(models.Meeting.id.desc()).first()
+        holder = {"link": existing.meet_link if existing else "",
+                  "time": existing.meeting_time if existing else ""}
+
+        def book_meeting(meeting_time: str, interest: str = "") -> str:
+            try:
+                from backend.meetings import book_meeting_for_prospect
+                meeting = book_meeting_for_prospect(
+                    db, contact, meeting_time,
+                    interest=interest or "Inbound chat asked for a call",
+                    user_id=user_id)
+                holder["link"] = meeting.meet_link
+                holder["time"] = meeting.meeting_time
+                return f"Success. The meeting link is {meeting.meet_link}."
+            except Exception as e:
+                print(f"[AGENT] takeover book fail: {e}")
+                return "Booking failed, tell them our team will confirm shortly."
+
+        tools = [{"type": "function", "function": {
+            "name": "book_meeting",
+            "description": "Call ONLY when they explicitly agree to a specific day/time for a call.",
+            "parameters": {"type": "object", "properties": {
+                "meeting_time": {"type": "string", "description": "Agreed time, e.g. 'tomorrow at 2 PM'"},
+                "interest": {"type": "string", "description": "One line: what they want"}},
+             "required": ["meeting_time"]}}}]
+        ctx = ""
+        if holder["link"]:
+            ctx = (f" Already BOOKED call: {holder['time']} link {holder['link']}."
+                   f" If they ask for link/time, give THIS exact link.")
+        messages = [
+            {"role": "system", "content": (
+                "You are the owner's personal assistant replying on WhatsApp on their behalf. "
+                "You are a REAL HUMAN assistant, warm and brief (1-2 short sentences). "
+                f"{ctx}\nSTRICT RULES:\n"
+                "1. Sound like a helpful human, never mention AI/tools.\n"
+                "2. Figure out what they need (question, service, meeting).\n"
+                "3. If they agree to a call time, use book_meeting silently, then share the link naturally.\n"
+                "4. Never invent links, prices, or promises. Output ONLY the raw reply.")},
+            {"role": "user", "content": f"They just wrote: '{user_message}'"}]
+        resp = client.chat.completions.create(
+            model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
+            messages=messages, tools=tools, tool_choice="auto")
+        rm = resp.choices[0].message
+        if rm.tool_calls:
+            tc = rm.tool_calls[0]
+            if tc.function.name == "book_meeting":
+                args = json.loads(tc.function.arguments)
+                tr = book_meeting(args.get("meeting_time", "soon"), args.get("interest", ""))
+                messages.append({"role": "assistant", "content": rm.content, "tool_calls": [{
+                    "id": tc.id, "type": "function",
+                    "function": {"name": tc.function.name, "arguments": tc.function.arguments}}]})
+                messages.append({"role": "tool", "tool_call_id": tc.id, "name": "book_meeting", "content": tr})
+                r2 = client.chat.completions.create(
+                    model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"), messages=messages)
+                return _ensure_link_common((r2.choices[0].message.content or "").strip(), holder,
+                                           user_message, contact, db, user_id)
+
+        return _ensure_link_common((rm.content or "").strip(), holder,
+                                   user_message, contact, db, user_id)
+    except Exception as e:
+        print(f"Takeover Agent Error: {e}")
+        return "Hey! Thanks for reaching out — we'll get back to you very shortly."
+
+
+def _ensure_link_common(reply_text: str, holder: dict, user_message: str,
+                        contact, db, user_id: str) -> str:
+    """Shared guarantee: link promises always resolve to a real URL (auto-book
+    on prospect agreement only), placeholders never go out."""
+    reply_text = reply_text or ""
+    if "http" in reply_text:
+        return reply_text
+    lowered = reply_text.lower()
+    promises = ("[link]" in lowered or "[meeting link]" in lowered
+                or ("link" in lowered and any(
+                    w in lowered for w in ("join", "meeting", "call", "invite"))))
+    if not promises:
+        return reply_text
+    link = holder.get("link", "")
+    when = holder.get("time", "") or "the agreed time"
+    if not link and contact is not None:
+        pm = (user_message or "").lower()
+        agreed = (_extract_time(user_message) is not None or any(
+            w in pm for w in ("yes", "yeah", "yep", "ok", "okay", "sure",
+                              "works", "book", "confirm", "deal", "done",
+                              "agreed", "perfect", "great", "fine")))
+        if not agreed:
+            print("[AGENT] link promised w/o prospect agreement — no booking")
+            cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
+            return (cleaned + " I'll drop it here shortly.").strip()
+        tm = _extract_time(user_message + " " + reply_text) or "tomorrow at 2 PM"
+        try:
+            from backend.meetings import book_meeting_for_prospect
+            meeting = book_meeting_for_prospect(
+                db, contact, tm, interest="Agreed to talk", user_id=user_id)
+            link, when = meeting.meet_link, meeting.meeting_time
+            holder["link"], holder["time"] = link, when
+        except Exception as e:
+            print(f"[AGENT] auto-book fail: {e}")
+    if link:
+        cleaned = _re.sub(r"\[.*?link.*?\]", "", reply_text, flags=_re.I).strip()
+        if not cleaned:
+            cleaned = f"Perfect, locked in for {when}."
+        return f"{cleaned} Join here: {link}"
+    cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
+    return (cleaned + " I'll drop it here shortly.").strip()
+
+
 def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Handles inbound replies from Prospects and uses Tools to book meetings"""
     import json
@@ -190,46 +348,8 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
         holder = {"link": booked_link, "time": booked_time}
 
         def _ensure_link(reply_text: str) -> str:
-            """Never let a link promise go out without a real URL.
-            Covers: model wrote [link] placeholder, or promised a join link
-            without calling the tool. Auto-books when needed."""
-            reply_text = reply_text or ""
-            if "http" in reply_text:
-                return reply_text
-            lowered = reply_text.lower()
-            promises = ("[link]" in lowered or "[meeting link]" in lowered
-                        or ("link" in lowered and any(
-                            w in lowered for w in ("join", "meeting", "call", "invite"))))
-            if not promises:
-                return reply_text
-            link = holder.get("link", "")
-            when = holder.get("time", "") or "the agreed time"
-            if not link and last_prospect is not None:
-                # AUTO-BOOK ONLY ON PROSPECT AGREEMENT. Never book because the
-                # model merely promised a link — that caused a false HOT LEAD.
-                pm = (user_message or "").lower()
-                agreed = (_extract_time(user_message) is not None or any(
-                    w in pm for w in ("yes", "yeah", "yep", "ok", "okay", "sure",
-                                      "works", "book", "confirm", "deal", "done",
-                                      "agreed", "perfect", "great", "fine")))
-                if not agreed:
-                    print(f"[AGENT] link promised w/o prospect agreement — no booking")
-                    cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
-                    return (cleaned + " I'll drop it here shortly.").strip()
-                tm = _extract_time(user_message + " " + reply_text) or "tomorrow at 2 PM"
-                try:
-                    book_meeting(tm, f"{company_name} agreed to talk")
-                    link = holder.get("link", "")
-                    when = holder.get("time", tm)
-                except Exception as e:
-                    print(f"[AGENT] auto-book fail: {e}")
-            if link:
-                cleaned = _re.sub(r"\[.*?link.*?\]", "", reply_text, flags=_re.I).strip()
-                if not cleaned:
-                    cleaned = f"Perfect, locked in for {when}."
-                return f"{cleaned} Join here: {link}"
-            cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
-            return (cleaned + " I'll drop it here shortly.").strip()
+            return _ensure_link_common(reply_text, holder, user_message,
+                                       last_prospect, db, user_id)
 
         tools = [{
             "type": "function",

@@ -272,15 +272,51 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
             return None
 
         prospect = _find_prospect(db, sender_phone, remote_jid, user_id)
-        
-        # Human Takeover check
+
+        from datetime import datetime, timedelta, timezone
+        def _mute_active(db, user_id, sender_phone):
+            m = db.query(models.TakeoverMute).filter(
+                models.TakeoverMute.user_id == user_id,
+                models.TakeoverMute.sender_phone == sender_phone,
+                models.TakeoverMute.muted == True).first()  # noqa: E712
+            if not m:
+                return False
+            ts = m.updated_at
+            if ts is None:
+                return True
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            # Mute expires after 24h of owner silence -> agent resumes on its own
+            if datetime.now(timezone.utc) - ts > timedelta(hours=24):
+                m.muted = False
+                db.commit()
+                print(f"[AI UNMUTE] 24h passed, resuming for {sender_phone}")
+                return False
+            return True
+
+        # Human Takeover check: owner replied manually -> AI mutes for this chat
         if from_me:
             if prospect:
                 print(f"[AI MUTE PROTOCOL] Human replied to {sender_phone}. Muting AI.")
                 prospect.ai_muted = True
-                db.commit()
+            try:
+                m = db.query(models.TakeoverMute).filter(
+                    models.TakeoverMute.user_id == user_id,
+                    models.TakeoverMute.sender_phone == sender_phone).first()
+                if not m:
+                    m = models.TakeoverMute(user_id=user_id, sender_phone=sender_phone, muted=True)
+                    db.add(m)
+                else:
+                    m.muted = True
+            except Exception as e:
+                print(f"[AI MUTE] mute-save fail: {e}")
+            db.commit()
             return {"status": "muted_or_ignored"}
-            
+
+        if _mute_active(db, user_id, sender_phone):
+            print(f"[AI MUTED] Takeover mute active for {sender_phone}, ignoring")
+            return {"status": "ignored"}
+
         if prospect and prospect.ai_muted:
             print(f"[AI MUTED] Ignored inbound message from {sender_phone}")
             return {"status": "ignored"}

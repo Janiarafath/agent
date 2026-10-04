@@ -80,3 +80,14 @@ class UserSettings(Base):
     user_id = Column(String, primary_key=True)
     admin_phone = Column(String, default="")  # boss WhatsApp number for HOT LEAD pings
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class TakeoverMute(Base):
+    """Human-takeover mute per sender. Owner replied manually -> AI stays quiet.
+    Auto-expires after 24h so the agent resumes without manual unmute."""
+    __tablename__ = "takeover_mutes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    sender_phone = Column(String, index=True)
+    muted = Column(Boolean, default=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
