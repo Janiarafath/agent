@@ -184,7 +184,11 @@ WHATSAPP_API_TOKEN = os.getenv("WHATSAPP_API_TOKEN", "")
 
 @app.get("/")
 def read_root():
-    return {"status": "GrowthPilot Backend Alive", "mode": "Demo" if not WHATSAPP_API_TOKEN else "Production"}
+    # "Live" = serving traffic. Engine tells you which WhatsApp path is active:
+    # real Meta Cloud API token, or our Baileys engine (default).
+    _tok = (os.getenv("WHATSAPP_API_TOKEN", "") or "").strip()
+    engine = "CloudAPI" if _tok and _tok != "your_meta_access_token" else "Baileys"
+    return {"status": "GrowthPilot Backend Alive", "mode": f"Live-{engine}"}
 
 # --- WHATSAPP WEBHOOK (VERIFICATION) ---
 @app.get("/webhook/whatsapp")
