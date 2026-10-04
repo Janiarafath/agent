@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GrowthPilot AI",
-  description: "Agentic SaaS",
+  title: "DashWin",
+  description: "DashWin Sales Automation",
 };
 
 export default function RootLayout({

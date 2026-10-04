@@ -18,10 +18,15 @@ export const Sidebar = () => {
     ];
 
     return (
-        <div className={`relative transition-all duration-300 h-screen bg-white/70 backdrop-blur-xl border-r border-white/40 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex flex-col ${isCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className={`relative transition-all duration-200 h-screen bg-white border-r border-slate-200 flex flex-col ${isCollapsed ? 'w-20' : 'w-64'}`}>
             {/* Header */}
-            <div className="h-16 flex items-center justify-between px-4 border-b border-white/40">
-                {!isCollapsed && <span className="font-bold text-lg text-slate-800 bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-purple-600">GrowthPilot AI</span>}
+            <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
+                {!isCollapsed && (
+                    <span className="flex items-center gap-2">
+                        <span className="w-7 h-7 bg-indigo-600 rounded-[10px] flex items-center justify-center text-white text-sm font-bold">D</span>
+                        <span className="font-bold text-base text-slate-900 tracking-tight">DashWin</span>
+                    </span>
+                )}
                 <button 
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors mx-auto"
@@ -36,8 +41,8 @@ export const Sidebar = () => {
                     const isActive = pathname === item.href;
                     return (
                         <Link key={item.name} href={item.href}>
-                            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${isActive ? 'bg-white shadow-sm border border-slate-100 text-indigo-600' : 'text-slate-500 hover:bg-white/50 hover:text-slate-700'}`}>
-                                <item.icon className={`w-5 h-5 ${isActive ? 'text-indigo-600' : ''}`} />
+                            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors duration-200 ${isActive ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
+                                <item.icon className="w-5 h-5" />
                                 {!isCollapsed && <span className="font-medium text-sm">{item.name}</span>}
                             </div>
                         </Link>
@@ -46,10 +51,10 @@ export const Sidebar = () => {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/40">
-                <button 
+            <div className="p-4 border-t border-slate-200">
+                <button
                     onClick={logout}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-slate-500 hover:bg-red-50 hover:text-red-600 transition-all"
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-[10px] text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors duration-200"
                 >
                     <LogOut className="w-5 h-5" />
                     {!isCollapsed && <span className="font-medium text-sm">Sign out</span>}
