@@ -106,6 +106,24 @@ def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
         return f"Admin Command Error: {str(e)}"
 
 import random as _random  # noqa: F401 (kept for compat)
+import re as _re
+
+
+def _extract_time(text: str) -> str | None:
+    """Pull 'Friday at 2 PM'-style time out of free text for auto-booking."""
+    t = (text or "").lower()
+    days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday", "today", "tomorrow"]
+    day = next((d for d in days if d in t), "")
+    m = _re.search(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)", t)
+    if day and m:
+        hh, mm, ap = m.group(1), (":" + m.group(2)) if m.group(2) else "", m.group(3).upper()
+        return f"{day.capitalize()} at {hh}{mm} {ap}"
+    if day:
+        return f"{day.capitalize()}"
+    if m:
+        hh, mm, ap = m.group(1), (":" + m.group(2)) if m.group(2) else "", m.group(3).upper()
+        return f"{hh}{mm} {ap}"
+    return None
 
 def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "default_user") -> str:
     """Handles inbound replies from Prospects and uses Tools to book meetings"""
@@ -165,6 +183,37 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                     return "Booking failed, tell them our team will confirm shortly."
             return "No prospect context to book against."
         holder = {"link": booked_link, "time": booked_time}
+
+        def _ensure_link(reply_text: str) -> str:
+            """Never let a link promise go out without a real URL.
+            Covers: model wrote [link] placeholder, or promised a join link
+            without calling the tool. Auto-books when needed."""
+            reply_text = reply_text or ""
+            if "http" in reply_text:
+                return reply_text
+            lowered = reply_text.lower()
+            promises = ("[link]" in lowered or "[meeting link]" in lowered
+                        or ("link" in lowered and any(
+                            w in lowered for w in ("join", "meeting", "call", "invite"))))
+            if not promises:
+                return reply_text
+            link = holder.get("link", "")
+            when = holder.get("time", "") or "the agreed time"
+            if not link and last_prospect is not None:
+                tm = _extract_time(user_message + " " + reply_text) or "tomorrow at 2 PM"
+                try:
+                    book_meeting(tm, f"{company_name} agreed to talk")
+                    link = holder.get("link", "")
+                    when = holder.get("time", tm)
+                except Exception as e:
+                    print(f"[AGENT] auto-book fail: {e}")
+            if link:
+                cleaned = _re.sub(r"\[.*?link.*?\]", "", reply_text, flags=_re.I).strip()
+                if not cleaned:
+                    cleaned = f"Perfect, locked in for {when}."
+                return f"{cleaned} Join here: {link}"
+            cleaned = _re.sub(r"\[.*?link.*?\]", "the invite link", reply_text, flags=_re.I)
+            return (cleaned + " I'll drop it here shortly.").strip()
 
         tools = [{
             "type": "function",
@@ -242,23 +291,16 @@ def prospect_agent(user_message: str, sender_phone: str, db, user_id: str = "def
                     messages=messages
                 )
                 reply_text = (second_response.choices[0].message.content or "").strip()
-                # HARD GUARANTEE: a real link must reach the prospect. The model
-                # sometimes writes "[Meeting Link]" placeholders or drops the URL —
-                # never let that go out. Deterministic fallback wins.
-                link = holder.get("link", "")
-                when = holder.get("time", "") or "the agreed time"
-                if link and ("http" not in reply_text or "[Meeting Link]" in reply_text or "[link]" in reply_text.lower()):
-                    reply_text = f"Perfect, locked in for {when}. Join here: {link} — see you then!"
-                    print(f"[AGENT] placeholder guard fired, deterministic reply used")
+                # HARD GUARANTEE: a real link must reach the prospect (or get
+                # auto-booked). Placeholders never go out.
+                reply_text = _ensure_link(reply_text)
                 print(f"AI DRAFT (Tool Used): {reply_text}")
                 return reply_text
                 
         reply_text = (response_message.content or "").strip()
-        # Same guard for non-tool replies when a meeting already exists
-        # (e.g. prospect asks "where is link?").
-        if holder.get("link") and ("where" in user_message.lower() and "link" in user_message.lower()) and "http" not in reply_text:
-            reply_text = f"Here you go: {holder['link']} for {holder.get('time', 'our call')} — see you then!"
-            print(f"[AGENT] existing-meeting guard fired")
+        # Same guarantee for non-tool replies (placeholder promise w/o booking,
+        # or "where is link?" when a meeting already exists).
+        reply_text = _ensure_link(reply_text)
         print(f"AI DRAFT: {reply_text}")
         return reply_text
         
