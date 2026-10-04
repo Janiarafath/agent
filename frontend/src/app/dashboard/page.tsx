@@ -176,15 +176,20 @@ export default function DashboardPage() {
     </div>
   );
 
-  const cols: { key: string; title: string; match: string[]; accent: string }[] = [
-    { key: "queue", title: "Queue", match: ["NEW"], accent: "border-slate-300" },
-    { key: "research", title: "Researching", match: ["RESEARCHING"], accent: "border-amber-400" },
-    { key: "review", title: "Review", match: ["OUTREACH_READY"], accent: "border-[#5951ff]" },
-    { key: "await", title: "Awaiting", match: ["CONTACTED", "WAITING"], accent: "border-slate-400" },
-    { key: "won", title: "Engaged", match: ["REPLIED", "INTERESTED"], accent: "border-emerald-500" },
+  const stages: { key: string; title: string; match: string[] }[] = [
+    { key: "queue", title: "Queue", match: ["NEW"] },
+    { key: "research", title: "Research", match: ["RESEARCHING"] },
+    { key: "review", title: "Review", match: ["OUTREACH_READY"] },
+    { key: "await", title: "Awaiting", match: ["CONTACTED", "WAITING"] },
+    { key: "won", title: "Engaged", match: ["REPLIED", "INTERESTED"] },
   ];
-  const inCol = (state: string, match: string[]) =>
+  const inStage = (state: string, match: string[]) =>
     match.some((s) => state === s || state === `PipelineState.${s}`);
+  const [activeStage, setActiveStage] = useState<string>("review");
+  const stageLeads = (data?.pipeline || []).filter((p) =>
+    inStage(p.pipeline_state, stages.find((s) => s.key === activeStage)?.match || []));
+  const stageCount = (key: string) =>
+    (data?.pipeline || []).filter((p) => inStage(p.pipeline_state, stages.find((s) => s.key === key)?.match || [])).length;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
@@ -296,56 +301,60 @@ export default function DashboardPage() {
           </div>
       </section>
 
-      {/* Board + rail: pipeline beside intel, not stacked steps */}
+      {/* Board + rail: journey across, detail beside — no vertical kanban */}
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <section className="lg:col-span-2">
-          <h2 className="text-base font-bold text-[#120044] mb-3 px-1">Pipeline</h2>
-          <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
-            {cols.map((col) => {
-              const cards = (data?.pipeline || []).filter((p) => inCol(p.pipeline_state, col.match));
+        <section className="lg:col-span-2 bg-white border border-[#e4e1f5] rounded-lg overflow-hidden">
+          <div className="px-5 pt-4">
+            <h2 className="text-base font-bold text-[#120044]">Revenue journey</h2>
+          </div>
+          {/* Horizontal stages */}
+          <div className="flex items-stretch px-5 pt-3 overflow-x-auto">
+            {stages.map((s, i) => {
+              const active = activeStage === s.key;
+              const n = stageCount(s.key);
               return (
-              <div key={col.key} className="flex flex-col bg-[#f6f5ff] rounded-lg border border-[#e4e1f5] p-2 min-h-[180px]">
-                <div className="px-2 py-1.5 mb-1 flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-[#4c4480] uppercase tracking-widest">{col.title}</span>
-                    <span className="tnum bg-white border border-[#e4e1f5] text-[#4c4480] text-[11px] font-bold px-2 py-0.5 rounded-full">{cards.length}</span>
-                </div>
-                <div className="flex-1 space-y-2 overflow-y-auto max-h-[520px] pr-0.5">
-                  {cards.map((p) => (
-                    <div key={p.id} className={`bg-white p-3 rounded border border-[#e4e1f5] border-l-4 ${col.accent} relative`}>
-                      {p.ai_muted && <ShieldAlert className="absolute top-2.5 right-2.5 w-4 h-4 text-red-500" />}
-                      <p className="text-[13px] font-bold text-[#120044] leading-snug pr-5">{p.company_name}</p>
-                      <p className="text-[10px] font-medium text-[#a099b4] mt-1">SRC: {p.business_signals?.source || 'SYSTEM'}</p>
-                      {col.key === "review" && (
-                        <button onClick={() => approveOutreach(p.id)} disabled={approvingId === p.id}
-                            className="ui-press mt-2.5 w-full bg-[#efedff] hover:bg-[#e2defc] disabled:opacity-50 text-[#5951ff] text-[11px] font-bold py-1.5 rounded flex items-center justify-center gap-1">
-                            {approvingId === p.id ? "Sending…" : <>Approve <ChevronRight className="w-3 h-3" /></>}
-                        </button>
-                      )}
-                      {col.key === "research" && (
-                        <div className="mt-2 flex items-center gap-1.5 text-amber-600">
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                            <span className="text-[10px] font-bold">Scraping web…</span>
-                        </div>
-                      )}
-                      {col.key === "await" && !p.ai_muted && (
-                        <div className="mt-2 flex items-center gap-1.5 text-[#a099b4]">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase">Standby</span>
-                        </div>
-                      )}
-                      {col.key === "won" && (
-                        <div className="mt-2 flex items-center gap-1.5 text-emerald-600">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase">Engaged</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {cards.length === 0 && <p className="text-[11px] text-[#a099b4] text-center py-4">Empty</p>}
-                </div>
-              </div>
+                <button key={s.key} onClick={() => setActiveStage(s.key)}
+                  className={`ui-press flex-1 min-w-[110px] text-left px-3 py-2.5 border-b-2 ${active ? "border-[#5951ff]" : "border-transparent hover:border-[#e4e1f5]"}`}>
+                  <span className="tnum text-[10px] font-bold text-[#a099b4]">0{i + 1}</span>
+                  <span className={`block text-sm font-bold ${active ? "text-[#120044]" : "text-[#4c4480]"}`}>{s.title}</span>
+                  <span className={`tnum text-xs font-bold ${active ? "text-[#5951ff]" : "text-[#a099b4]"}`}>{n}</span>
+                </button>
               );
             })}
+          </div>
+          {/* Unified lead table */}
+          <div className="border-t border-[#e4e1f5]">
+            <div className="hidden md:grid grid-cols-[1fr_110px_130px] gap-3 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-[#a099b4] border-b border-[#e4e1f5]">
+              <span>Company</span><span>Source</span><span className="text-right">Action</span>
+            </div>
+            <div className="divide-y divide-[#f1eefb] max-h-[460px] overflow-y-auto">
+              {stageLeads.map((p) => (
+                <div key={p.id} className="grid md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 px-5 py-3 items-center">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-bold text-[#120044] truncate">{p.company_name}</p>
+                    {p.ai_muted && <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+                  </div>
+                  <p className="text-[11px] font-medium text-[#a099b4] truncate">{p.business_signals?.source || "SYSTEM"}</p>
+                  <div className="md:text-right">
+                    {activeStage === "review" ? (
+                      <button onClick={() => approveOutreach(p.id)} disabled={approvingId === p.id}
+                        className="ui-press bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
+                        {approvingId === p.id ? "Sending…" : "Approve"}
+                      </button>
+                    ) : activeStage === "research" ? (
+                      <span className="inline-flex items-center gap-1.5 text-amber-600 text-xs font-bold"><Loader2 className="w-3 h-3 animate-spin" /> Scraping…</span>
+                    ) : activeStage === "await" ? (
+                      <span className="inline-flex items-center gap-1.5 text-[#a099b4] text-xs font-bold"><Clock className="w-3 h-3" /> Standby</span>
+                    ) : activeStage === "won" ? (
+                      <span className="inline-flex items-center gap-1.5 text-emerald-600 text-xs font-bold"><CheckCircle2 className="w-3 h-3" /> Engaged</span>
+                    ) : (
+                      <span className="text-xs font-bold text-[#a099b4]">Queued</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {stageLeads.length === 0 && <p className="text-xs text-[#a099b4] text-center py-8">Nothing here — launch a campaign above.</p>}
+            </div>
           </div>
         </section>
 

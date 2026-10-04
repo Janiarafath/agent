@@ -129,13 +129,68 @@ export default function Landing() {
           </h2>
           <div>
             <p className="text-white/70 leading-relaxed">
-              One DashWin agent discovers leads, verifies numbers, drafts outreach, answers replies like a human SDR, and books calls with real links — the work of three hires, running 24/7.
+              One DashWin agent discovers leads, verifies numbers, drafts outreach, answers replies like a human, and books calls with real links — the work of three hires, running 24/7.
             </p>
-            <Link href="/login" className="ui-press inline-flex items-center gap-2 mt-6 border border-[#5951ff] text-white hover:bg-white/10 font-semibold px-6 py-3 rounded text-sm">
-              Learn more about AI workflows <ArrowRight className="w-4 h-4" />
+            <Link href="#product" className="ui-press inline-flex items-center gap-2 mt-6 border border-[#5951ff] text-white hover:bg-white/10 font-semibold px-6 py-3 rounded text-sm">
+              Learn more <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
+      </section>
+
+      {/* Platform accordion */}
+      <section id="product" className="max-w-6xl mx-auto px-6 py-16">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">One agentic AI platform for revenue teams.</h2>
+        <p className="text-[#4c4480] mt-2">Purpose-built to orchestrate every stage of your pipeline.</p>
+        <div className="mt-8 border-t border-[#e4e1f5]">
+          {[
+            { t: "Give every seller an AI teammate", d: "DashWin agents surface the right prospects, verify their WhatsApp, handle the research, and guide you on what to approve next." },
+            { t: "Engage every stranger like an owner", d: "Anyone messaging your number gets a warm human-like assistant that answers, qualifies, and books calls — even at 3 AM." },
+            { t: "Close without adding headcount", d: "Agents flag hot replies, mint real meeting links, and ping you with interest + time + join button the second deals move." },
+            { t: "Stay safe while scaling", d: "Daily caps, STOP auto-handling, LID-safe delivery, honest SENT/FAILED logs. Growth with guardrails, not bans." },
+          ].map((c) => (
+            <details key={c.t} className="group border-b border-[#e4e1f5] py-4" open={c.t.startsWith("Give every")}>
+              <summary className="flex items-center justify-between cursor-pointer font-bold list-none">
+                {c.t}
+                <span className="text-[#5951ff] group-open:rotate-45 transition-transform duration-200 text-xl leading-none">+</span>
+              </summary>
+              <p className="text-sm text-[#4c4480] mt-2 leading-relaxed max-w-2xl">{c.d}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* Trust trio */}
+      <section className="border-y border-[#e4e1f5] bg-[#f6f5ff]">
+        <div className="max-w-6xl mx-auto px-6 py-14">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">A trusted sales platform</h2>
+          <div className="grid md:grid-cols-3 gap-4 mt-8">
+            {[
+              { t: "Safety", d: "Caps, opt-outs, and audit logs on every action. Numbers stay unbanned by design." },
+              { t: "Privacy", d: "Secrets live in vaults, never in code. Customer chats stay yours — no mystery boxes." },
+              { t: "Control", d: "Nothing sends without your approve. Human takeover mutes AI instantly per chat." },
+            ].map((c) => (
+              <div key={c.t} className="bg-white border border-[#e4e1f5] rounded p-5">
+                <ShieldCheck className="w-5 h-5 text-[#5951ff]" />
+                <h3 className="font-bold mt-3">{c.t}</h3>
+                <p className="text-sm text-[#4c4480] mt-1.5 leading-relaxed">{c.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quotes */}
+      <section className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-4">
+        {[
+          { q: "Evening enquiries used to wait till morning. Now the assistant answers in seconds and books Friday demos.", n: "Dental chain owner", r: "Chennai" },
+          { q: "It books meetings while I sleep and only pings me when someone is actually interested.", n: "Agency founder", r: "Early user" },
+        ].map((c) => (
+          <figure key={c.n} className="border border-[#e4e1f5] rounded p-6">
+            <blockquote className="text-[15px] leading-relaxed">“{c.q}”</blockquote>
+            <figcaption className="text-xs text-[#4c4480] mt-3 font-semibold">{c.n} · {c.r}</figcaption>
+          </figure>
+        ))}
       </section>
 
       {/* How it works */}
