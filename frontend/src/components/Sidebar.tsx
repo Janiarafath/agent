@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Users, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import Link from "next/link";
@@ -12,9 +12,8 @@ export const Sidebar = () => {
     const pathname = usePathname();
 
     const navItems = [
-        { name: "Dashboard", href: "/", icon: LayoutDashboard },
-        { name: "Leads", href: "/leads", icon: Users },
-        { name: "Settings", href: "/settings", icon: Settings }
+        { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Site", href: "/", icon: Users },
     ];
 
     return (

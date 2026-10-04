@@ -2,22 +2,29 @@
 
 import { useAuth } from "@/context/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
+import { usePathname } from "next/navigation";
 
 export const ClientLayoutWrapper = ({ children }: { children: React.ReactNode }) => {
     const { user, loading } = useAuth();
+    const pathname = usePathname();
+    const inApp = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
 
     if (loading) return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <div className="min-h-screen bg-white flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-[#e4e1f5] border-t-[#5951ff] rounded-full animate-spin"></div>
         </div>
     );
+
+    if (!inApp) {
+        return <>{children}</>;
+    }
 
     if (!user) {
         return <>{children}</>;
     }
 
     return (
-        <div className="flex h-screen bg-slate-50/50 overflow-hidden">
+        <div className="flex h-screen bg-white overflow-hidden">
             <Sidebar />
             <div className="flex-1 overflow-y-auto">
                 {children}

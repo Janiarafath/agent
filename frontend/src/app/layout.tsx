@@ -1,22 +1,17 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/context/AuthContext";
 import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Lexend } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const lexend = Lexend({
+  variable: "--font-lexend",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "DashWin",
-  description: "DashWin Sales Automation",
+  title: "DashWin — Agentic AI Platform for Revenue Teams",
+  description: "DashWin finds business leads, verifies WhatsApp, drafts outreach and books meetings on autopilot.",
 };
 
 export default function RootLayout({
@@ -27,10 +22,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${lexend.variable} h-full antialiased`}
       suppressHydrationWarning={true}
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900" suppressHydrationWarning={true}>
+      <body className="min-h-full flex flex-col bg-white text-[#120044]" suppressHydrationWarning={true}>
         <AuthProvider>
             <ClientLayoutWrapper>
                 {children}
