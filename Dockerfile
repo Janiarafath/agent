@@ -15,9 +15,11 @@ WORKDIR /app
 COPY backend/requirements.txt ./backend/requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r backend/requirements.txt
 
-# Node deps for BOTH wa-service (code) and whatsapp_service (node_modules it reuses)
+# Node deps for BOTH wa-service (code) and whatsapp_service (node_modules it reuses).
+# NOTE: Chrome download skipped — Baileys needs no browser (that's the whole point).
+ENV PUPPETEER_SKIP_DOWNLOAD=1 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 COPY whatsapp_service/package.json ./whatsapp_service/package.json
-RUN cd whatsapp_service && (npm ci --omit=dev 2>/dev/null || npm install --omit=dev) && npm cache clean --force
+RUN cd whatsapp_service && (npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --omit=dev --ignore-scripts) && npm cache clean --force
 
 # App code
 COPY backend ./backend
