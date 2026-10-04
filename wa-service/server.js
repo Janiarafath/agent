@@ -4,13 +4,13 @@
 //   GET  /api/check?number=&userId=     -> {exists, jid, number}
 //   POST /api/send {to,text,user_id}    -> {status, jid}
 // Inbound -> POST http://127.0.0.1:8000/webhook/baileys (same shape as web.js)
-const NM = 'D:/agent/whatsapp_service/node_modules';
+const path = require('path');
+const NM = process.env.WA_DEPS_DIR || path.join(__dirname, '..', 'whatsapp_service', 'node_modules');
 const express = require(NM + '/express');
 const cors = require(NM + '/cors');
 const axios = require(NM + '/axios');
 const qrcode = require(NM + '/qrcode');
 const fs = require('fs');
-const path = require('path');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require(NM + '/@whiskeysockets/baileys');
 
 const PORT = parseInt(process.env.WA_PORT || '3002', 10);

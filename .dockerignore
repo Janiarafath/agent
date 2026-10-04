@@ -1,0 +1,21 @@
+# Never ship secrets, sessions, junk, or dev folders into the image.
+.env
+.env.*
+*.db
+*.db-journal
+*.log
+__pycache__/
+*.pyc
+.git/
+.gitignore
+node_modules/
+whatsapp_service/node_modules/
+whatsapp_service/auth_info_webjs/
+whatsapp_service/.wwebjs_cache/
+whatsapp_service/qr.png
+wa-service/auth_info_baileys/
+bailey-spike/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+C:\Users\crayon\AppData\Local\Temp\opencode/
