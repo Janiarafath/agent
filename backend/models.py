@@ -107,6 +107,22 @@ class BusinessProfile(Base):
     location = Column(String, default="")
     faq = Column(JSON, default=list)  # [{"q": "...", "a": "..."}]
     tone = Column(String, default="warm, brief, human")
+    avg_deal_inr = Column(Integer, default=5000)  # for pipeline estimates
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class JobRun(Base):
+    """Campaign/progress tracking so the dashboard shows live status, not silence."""
+    __tablename__ = "job_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    kind = Column(String, default="discover")  # discover | recovery | followups
+    status = Column(String, default="queued")  # queued | running | done | failed
+    stage = Column(String, default="")  # searching | verifying | drafting | ...
+    total = Column(Integer, default=0)
+    done_count = Column(Integer, default=0)
+    result = Column(String, default="")  # human summary, e.g. "12 leads ready"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 class LeadMemory(Base):

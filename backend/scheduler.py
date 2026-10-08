@@ -74,14 +74,34 @@ def run_autonomous_discovery(search_query: str = "companies looking for b2b saas
     finally:
         db.close()
 
-def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Arabia", user_id: str = "default_user", max_results: int = 25):
+def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Arabia", user_id: str = "default_user", max_results: int = 25, job_id: int | None = None):
     """Autonomous: find (OSM+Places) -> normalize -> verify WhatsApp -> AI draft -> OUTREACH_READY."""
     print(f"[LEAD-PIPELINE] {category} in {city} for {user_id} ...")
     db = SessionLocal()
+
+    def _job(status=None, stage=None, total=None, done=None, result=None):
+        if not job_id:
+            return
+        try:
+            j = db.query(models.JobRun).filter(models.JobRun.id == job_id).first()
+            if not j:
+                return
+            if status: j.status = status
+            if stage: j.stage = stage
+            if total is not None: j.total = total
+            if done is not None: j.done_count = done
+            if result is not None: j.result = result
+            db.commit()
+        except Exception as e:
+            print(f"[LEAD-PIPELINE] job update fail: {e}")
+            try: db.rollback()
+            except Exception: pass
     try:
         from backend.discovery import discover_leads
         from backend.verify import is_whatsapp_registered
+        _job(status="running", stage="searching")
         leads = discover_leads(category, city, max_results=max_results)
+        _job(stage="verifying", total=len(leads), done=0)
         from groq import Groq
         groq_api_key = os.getenv("GROQ_API_KEY", "")
         groq_client = Groq(api_key=groq_api_key) if groq_api_key else None
@@ -123,9 +143,14 @@ def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Ara
                                 business_signals=sig)
             db.add(p)
             added += 1
+            if added % 5 == 0:
+                _job(stage="drafting", done=added)
         db.commit()
+        _job(status="done", stage="done", done=added,
+             result=f"{added} new leads ready for approval")
         print(f"[LEAD-PIPELINE] done: {added} new leads ready for approval.")
     except Exception as e:
+        _job(status="failed", stage="failed", result=str(e)[:200])
         print(f"[LEAD-PIPELINE] error: {e}")
     finally:
         db.close()

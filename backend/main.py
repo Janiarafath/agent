@@ -2,13 +2,14 @@ from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 import os
 
-from backend.database import engine, Base, get_db
-from backend import models
 from dotenv import load_dotenv
 from pathlib import Path as _Path
 
-# Load repo-root .env by absolute path (robust to any working directory)
+# Load repo-root .env FIRST — database.py reads DATABASE_URL at import time.
 load_dotenv(dotenv_path=_Path(__file__).resolve().parent.parent / ".env")
+
+from backend.database import engine, Base, get_db
+from backend import models
 
 # Create database tables (best-effort: a DB blip must never kill boot)
 try:
@@ -44,8 +45,25 @@ class AutoDiscoveryRequest(BaseModel):
 def auto_discover(request: AutoDiscoveryRequest, background_tasks: BackgroundTasks):
     """Autonomous lead find: OSM + Places API + website crawl -> verify -> draft. No CSV."""
     from backend.scheduler import run_lead_pipeline
-    background_tasks.add_task(run_lead_pipeline, request.category, request.city, request.user_id, request.max_results)
-    return {"status": f"Auto-discovery queued: {request.category} in {request.city}"}
+    from backend.database import SessionLocal
+    db = SessionLocal()
+    try:
+        job = models.JobRun(user_id=request.user_id, kind="discover",
+                            status="queued", stage="queued")
+        db.add(job)
+        db.commit()
+        db.refresh(job)
+        jid = job.id
+    except Exception:
+        db.rollback()
+        jid = None
+    finally:
+        db.close()
+    background_tasks.add_task(run_lead_pipeline, request.category, request.city, request.user_id, request.max_results, jid)
+    out = {"status": f"Auto-discovery queued: {request.category} in {request.city}"}
+    if jid:
+        out["job_id"] = jid
+    return out
 
 @app.post("/api/trigger-discovery")
 def trigger_discovery(request: DiscoveryRequest, background_tasks: BackgroundTasks):
@@ -203,6 +221,7 @@ class ProfileRequest(BaseModel):
     location: str = ""
     faq: list = []
     tone: str = ""
+    avg_deal_inr: int | None = None
 
 
 @app.get("/api/profile")
@@ -212,11 +231,12 @@ def get_profile(user_id: str, db: Session = Depends(get_db)):
         models.BusinessProfile.user_id == user_id).first()
     if not p:
         return {"business_name": "", "industry": "", "services": "", "pricing": "",
-                "hours": "", "location": "", "faq": [], "tone": ""}
+                "hours": "", "location": "", "faq": [], "tone": "", "avg_deal_inr": 5000}
     return {"business_name": p.business_name or "", "industry": p.industry or "",
             "services": p.services or "", "pricing": p.pricing or "",
             "hours": p.hours or "", "location": p.location or "",
-            "faq": p.faq or [], "tone": p.tone or ""}
+            "faq": p.faq or [], "tone": p.tone or "",
+            "avg_deal_inr": p.avg_deal_inr or 5000}
 
 
 @app.post("/api/profile")
@@ -235,6 +255,11 @@ def save_profile(request: ProfileRequest, db: Session = Depends(get_db)):
     p.location = (request.location or "")[:300]
     p.faq = request.faq or []
     p.tone = (request.tone or "")[:200]
+    try:
+        if request.avg_deal_inr is not None and int(request.avg_deal_inr) > 0:
+            p.avg_deal_inr = int(request.avg_deal_inr)
+    except Exception:
+        pass
     db.commit()
     return {"status": "saved"}
 
@@ -362,6 +387,141 @@ def trigger_recovery(user_id: str, background_tasks: BackgroundTasks):
     from backend.scheduler import run_recovery_scan
     background_tasks.add_task(run_recovery_scan, user_id)
     return {"status": f"Recovery scan queued for {user_id}"}
+
+
+@app.post("/api/recovery/{draft_id}/skip")
+def skip_recovery(draft_id: int, user_id: str, db: Session = Depends(get_db)):
+    """Archive a recovery draft without sending."""
+    r = db.query(models.RecoveryDraft).filter(
+        models.RecoveryDraft.id == draft_id,
+        models.RecoveryDraft.user_id == user_id,
+        models.RecoveryDraft.status == "pending").first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Pending draft not found")
+    r.status = "skipped"
+    db.commit()
+    return {"status": "skipped"}
+
+
+@app.get("/api/money")
+def money_overview(user_id: str, db: Session = Depends(get_db)):
+    """Outcome dashboard: unanswered, hot, due, meetings, recovered, pipeline ₹.
+    Formula is transparent: expected = score% x avg_deal per open lead."""
+    open_states = [models.PipelineState.NEW, models.PipelineState.RESEARCHING,
+                   models.PipelineState.QUALIFIED, models.PipelineState.OUTREACH_READY,
+                   models.PipelineState.CONTACTED, models.PipelineState.WAITING,
+                   models.PipelineState.REPLIED, models.PipelineState.INTERESTED,
+                   models.PipelineState.PROPOSAL]
+    prospects = db.query(models.Prospect).filter(
+        models.Prospect.user_id == user_id).all()
+    prof = db.query(models.BusinessProfile).filter(
+        models.BusinessProfile.user_id == user_id).first()
+    avg = (prof.avg_deal_inr if prof and prof.avg_deal_inr else 5000) or 5000
+    mem_by_pid = {}
+    try:
+        for m in db.query(models.LeadMemory).filter(
+                models.LeadMemory.user_id == user_id).all():
+            mem_by_pid[m.prospect_id] = m
+    except Exception:
+        pass
+    state_score = {"NEW": 10, "RESEARCHING": 15, "QUALIFIED": 40, "OUTREACH_READY": 20,
+                   "CONTACTED": 30, "WAITING": 35, "REPLIED": 50, "INTERESTED": 90,
+                   "PROPOSAL": 95}
+    pipeline = 0
+    hot = 0
+    for p in prospects:
+        st = p.pipeline_state.value if hasattr(p.pipeline_state, "value") else str(p.pipeline_state)
+        if st in ("WON", "LOST", "DO_NOT_CONTACT"):
+            continue
+        mem = mem_by_pid.get(p.id)
+        score = mem.lead_score if mem and mem.lead_score else state_score.get(st, 10)
+        pipeline += int(score / 100 * avg)
+        if (mem and mem.temp == "HOT") or st == "INTERESTED":
+            hot += 1
+    try:
+        pending_rec = db.query(models.RecoveryDraft).filter(
+            models.RecoveryDraft.user_id == user_id,
+            models.RecoveryDraft.status == "pending").count()
+        sent_rec = db.query(models.RecoveryDraft).filter(
+            models.RecoveryDraft.user_id == user_id,
+            models.RecoveryDraft.status == "sent").count()
+        meetings = db.query(models.Meeting).filter(
+            models.Meeting.user_id == user_id,
+            models.Meeting.status == "BOOKED").count()
+    except Exception:
+        pending_rec, sent_rec, meetings = 0, 0, 0
+    contacted = sum(1 for p in prospects if str(getattr(p.pipeline_state, "value", p.pipeline_state)) == "CONTACTED")
+    try:
+        ai_msgs = db.query(models.Message).filter(
+            models.Message.channel == "WHATSAPP",
+            models.Message.direction == "OUTBOUND").count()
+    except Exception:
+        ai_msgs = 0
+    return {
+        "estimated_pipeline_inr": pipeline,
+        "avg_deal_inr": avg,
+        "hot_leads": hot,
+        "followups_due": contacted + pending_rec,
+        "meetings_booked": meetings,
+        "recovered": sent_rec + meetings,
+        "unanswered": contacted,
+        "hours_saved": round(ai_msgs * 2 / 60, 1),
+        "formula": "expected per lead = score% x avg deal; 2 min saved per AI message",
+    }
+
+
+@app.get("/api/jobs")
+def list_jobs(user_id: str, db: Session = Depends(get_db)):
+    """Latest job runs so the dashboard shows progress, not silence."""
+    try:
+        rows = db.query(models.JobRun).filter(
+            models.JobRun.user_id == user_id).order_by(
+            models.JobRun.id.desc()).limit(5).all()
+        return {"jobs": [{"id": r.id, "kind": r.kind, "status": r.status,
+                           "stage": r.stage or "", "total": r.total or 0,
+                           "done": r.done_count or 0, "result": r.result or "",
+                           "updated_at": str(r.updated_at)} for r in rows]}
+    except Exception:
+        return {"jobs": []}
+
+
+@app.get("/api/templates")
+def list_templates():
+    """Industry packs for the picker."""
+    from backend import templates as _t
+    return {"templates": _t.list_packs()}
+
+
+class TemplateApplyRequest(BaseModel):
+    user_id: str = "default_user"
+    industry: str = ""
+
+
+@app.post("/api/templates/apply")
+def apply_template(request: TemplateApplyRequest, db: Session = Depends(get_db)):
+    """Fill empty profile fields from an industry pack. Never overwrites."""
+    from backend import templates as _t
+    return _t.apply_pack(db, request.user_id, request.industry)
+
+
+@app.get("/api/muted")
+def list_muted(user_id: str, db: Session = Depends(get_db)):
+    """Chats where AI is paused (owner took over). Resume from here."""
+    out = []
+    try:
+        for m in db.query(models.TakeoverMute).filter(
+                models.TakeoverMute.user_id == user_id,
+                models.TakeoverMute.muted == True).order_by(  # noqa: E712
+                models.TakeoverMute.id.desc()).all():  # noqa: E712
+            p = db.query(models.Prospect).filter(
+                models.Prospect.user_id == user_id,
+                models.Prospect.public_phone == m.sender_phone).first()
+            out.append({"sender_phone": m.sender_phone,
+                        "company": p.company_name if p else f"Chat {m.sender_phone[-6:]}",
+                        "since": str(m.updated_at)})
+    except Exception as e:
+        print(f"[MUTED] list fail: {e}")
+    return {"muted": out}
 
 
 @app.get("/api/meetings")

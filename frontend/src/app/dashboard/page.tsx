@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Loader2, Sparkles, Send, CheckCircle2, Clock, MessageSquare, Terminal, ChevronRight, Activity, Smartphone, Link2, ShieldAlert, Video, Search } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -41,6 +41,18 @@ export default function DashboardPage() {
   const [waConnected, setWaConnected] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [meetings, setMeetings] = useState<any[]>([]);
+  const [money, setMoney] = useState<any>(null);
+  const [recovery, setRecovery] = useState<any[]>([]);
+  const [muted, setMuted] = useState<any[]>([]);
+  const [job, setJob] = useState<any>(null);
+  const [toast, setToast] = useState("");
+  const [recovering, setRecovering] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+  const [profile, setProfile] = useState<any>({ business_name: "", industry: "", services: "", pricing: "", hours: "", location: "", avg_deal_inr: 5000 });
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const toastShown = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -52,6 +64,32 @@ export default function DashboardPage() {
       fetch(`${API_BASE}/api/meetings?user_id=${user.uid}`)
         .then((res) => res.json())
         .then((data) => { setMeetings(data.meetings || []); })
+        .catch(() => {});
+      fetch(`${API_BASE}/api/money?user_id=${user.uid}`)
+        .then((res) => res.json())
+        .then((data) => { setMoney(data); })
+        .catch(() => {});
+      fetch(`${API_BASE}/api/recovery?user_id=${user.uid}`)
+        .then((res) => res.json())
+        .then((data) => { setRecovery(data.recovery || []); })
+        .catch(() => {});
+      fetch(`${API_BASE}/api/muted?user_id=${user.uid}`)
+        .then((res) => res.json())
+        .then((data) => { setMuted(data.muted || []); })
+        .catch(() => {});
+      fetch(`${API_BASE}/api/jobs?user_id=${user.uid}`)
+        .then((res) => res.json())
+        .then((data) => {
+          const jobs = data.jobs || [];
+          const active = jobs.find((j: any) => j.status === "queued" || j.status === "running");
+          setJob(active || jobs[0] || null);
+          const done = jobs.find((j: any) => j.status === "done");
+          if (done && done.result && !toastShown.current.has(done.id)) {
+            toastShown.current.add(done.id);
+            setToast(done.result);
+            setTimeout(() => setToast(""), 8000);
+          }
+        })
         .catch(() => {});
     };
     fetchDashboard();
@@ -87,8 +125,10 @@ export default function DashboardPage() {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ category, city, user_id: user.uid, max_results: 25 })
       });
-      if (!res.ok) throw new Error(`Server ${res.status}`);
-      alert(`Discovery queued: ${category} in ${city}. Watch Review column in ~1-2 min.`);
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
+      setJob({ id: json.job_id || 0, kind: "discover", status: "queued", stage: "queued", result: `Finding ${category} in ${city}…` });
+      setToast(`Searching ${category} in ${city}… watch this space.`);
     } catch (err: any) {
       alert(`Launch failed: ${err?.message || err}. Is backend on :8000?`);
     }
@@ -146,6 +186,119 @@ export default function DashboardPage() {
       alert(`Not sent: ${err?.message || err}`);
     }
     setApprovingId(null);
+  };
+
+  const triggerRecovery = async () => {
+    if (!user) return;
+    setRecovering(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/trigger-recovery?user_id=${user.uid}`, { method: "POST" });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      setToast("Recovery scan running — hot leads incoming.");
+      setTimeout(() => setToast(""), 6000);
+    } catch (err: any) {
+      alert(`Scan failed: ${err?.message || err}`);
+    }
+    setRecovering(false);
+  };
+
+  const approveRecovery = async (id: number) => {
+    if (!user) return;
+    if (!waConnected) { alert("Please connect WhatsApp first!"); setShowQRModal(true); return; }
+    setApprovingId(id);
+    try {
+      const res = await fetch(`${API_BASE}/api/recovery/${id}/approve?user_id=${user.uid}`, { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
+      alert("Recovery sent!");
+    } catch (err: any) {
+      alert(`Not sent: ${err?.message || err}`);
+    }
+    setApprovingId(null);
+  };
+
+  const skipRecovery = async (id: number) => {
+    if (!user) return;
+    try {
+      await fetch(`${API_BASE}/api/recovery/${id}/skip?user_id=${user.uid}`, { method: "POST" });
+      setRecovery((r) => r.filter((x: any) => x.id !== id));
+    } catch (err) {}
+  };
+
+  const saveRecoveryEdit = async (id: number) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/recovery/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, draft: editText })
+      });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      setRecovery((r) => r.map((x: any) => x.id === id ? { ...x, draft: editText } : x));
+      setEditingId(null);
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    }
+  };
+
+  const resumeChat = async (sender_phone: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/resume`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, sender_phone })
+      });
+      const json = await res.json().catch(() => ({}));
+      alert(json.status === "resumed" ? "AI resumed for this chat." : "Nothing was muted.");
+      setMuted((m) => m.filter((x: any) => x.sender_phone !== sender_phone));
+    } catch (err: any) {
+      alert(`Resume failed: ${err?.message || err}`);
+    }
+  };
+
+  const loadProfileEtc = async () => {    if (!user) return;
+    try {
+      const p = await fetch(`${API_BASE}/api/profile?user_id=${user.uid}`).then((r) => r.json());
+      setProfile({ business_name: p.business_name || "", industry: p.industry || "", services: p.services || "", pricing: p.pricing || "", hours: p.hours || "", location: p.location || "", avg_deal_inr: p.avg_deal_inr || 5000 });
+      const t = await fetch(`${API_BASE}/api/templates`).then((r) => r.json());
+      setTemplates(t.templates || []);
+    } catch (err) {}
+  };
+
+  useEffect(() => { loadProfileEtc(); }, [user]);
+
+  useEffect(() => { if (user) loadProfileEtc(); }, [user]);
+
+  const saveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, ...profile, avg_deal_inr: parseInt(profile.avg_deal_inr) || 5000 })
+      });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      alert("Business profile saved — AI answers from this now.");
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    }
+    setSavingProfile(false);
+  };
+
+  const applyTemplate = async (industry: string) => {
+    if (!user) return;
+    if (!confirm(`Fill empty business fields from the ${industry} pack? Your words are never overwritten.`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/templates/apply`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, industry })
+      });
+      const json = await res.json();
+      if (json.status !== "applied") throw new Error("Unknown industry");
+      alert(`Template applied (${(json.changed || []).join(", ") || "nothing empty"}). Review below, edit freely.`);
+      loadProfileEtc();
+    } catch (err: any) {
+      alert(`Template failed: ${err?.message || err}`);
+    }
   };
 
   if (!user && !loading) {
@@ -275,32 +428,98 @@ export default function DashboardPage() {
           </div>
       </section>
 
-      {/* Key numbers */}
-      <section className="bg-white border border-[#e4e1f5] rounded-lg px-6 py-5 flex flex-wrap items-center gap-x-10 gap-y-4">
-          <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#4c4480]">Total found</p>
-              <p className="tnum text-3xl font-bold text-[#120044] mt-1">{data?.metrics.total_leads || 0}</p>
+      {/* Money left on the table */}
+      <section className="bg-[#120044] rounded-lg px-6 py-5 text-white">
+          <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Est. pipeline</p>
+                  <p className="tnum text-3xl font-bold mt-1">₹{(money?.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Hot leads</p>
+                  <p className="tnum text-3xl font-bold mt-1">{money?.hot_leads ?? 0}</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Follow-ups due</p>
+                  <p className="tnum text-3xl font-bold mt-1">{money?.followups_due ?? 0}</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Meetings</p>
+                  <p className="tnum text-3xl font-bold mt-1">{money?.meetings_booked ?? 0}</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Recovered</p>
+                  <p className="tnum text-3xl font-bold text-emerald-300 mt-1">{money?.recovered ?? 0}</p>
+              </div>
+              <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Hours saved</p>
+                  <p className="tnum text-3xl font-bold mt-1">{money?.hours_saved ?? 0}h</p>
+              </div>
+              <button onClick={triggerRecovery} disabled={recovering}
+                  className="ui-press ml-auto bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded flex items-center gap-2">
+                  {recovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  Recover Lost Leads
+              </button>
           </div>
-          <div className="w-px self-stretch bg-[#e4e1f5] hidden sm:block" />
-          <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#4c4480]">Ready to send</p>
-              <p className="tnum text-3xl font-bold text-[#5951ff] mt-1">{data?.metrics.outreach_ready || 0}</p>
-          </div>
-          <div className="w-px self-stretch bg-[#e4e1f5] hidden sm:block" />
-          <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#4c4480]">Replied</p>
-              <p className="tnum text-3xl font-bold text-emerald-600 mt-1">{data?.metrics.replied || 0}</p>
-          </div>
-          <div className="w-px self-stretch bg-[#e4e1f5] hidden sm:block" />
-          <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-[#4c4480]">Researching</p>
-              <p className="tnum text-3xl font-bold text-amber-600 mt-1">{data?.metrics.researching || 0}</p>
-          </div>
-          <div className="ml-auto flex items-center gap-2 text-xs text-[#4c4480]">
-              <span className={`w-2 h-2 rounded-full ${waConnected ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-              {meetings.length > 0 ? `${meetings.length} meeting${meetings.length === 1 ? "" : "s"} booked` : "No meetings yet"}
-          </div>
+          <p className="text-[11px] text-white/40 mt-3">Expected per lead = score × avg deal (₹{(money?.avg_deal_inr || 5000).toLocaleString("en-IN")}). Set your avg deal in Business below.</p>
       </section>
+
+      {/* Live job progress */}
+      {job && (job.status === "queued" || job.status === "running") && (
+        <div className="bg-[#efedff] border border-[#5951ff]/30 rounded-lg px-5 py-3 flex items-center gap-3 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin text-[#5951ff] shrink-0" />
+            <p className="text-[#120044]">
+              <span className="font-bold capitalize">{job.stage || job.status}</span>
+              {job.total ? <span className="tnum text-[#4c4480]"> — {job.done || 0}/{job.total}</span> : null}
+              <span className="text-[#4c4480]"> — Tavily is searching, then numbers get verified. No need to wait here.</span>
+            </p>
+        </div>
+      )}
+
+      {/* Recovery queue */}
+      {recovery.length > 0 && (
+      <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-[#120044]">Recovery queue</h2>
+          <span className="tnum text-xs font-bold text-[#4c4480]">{recovery.length} waiting</span>
+        </div>
+        <div className="divide-y divide-[#f1eefb] mt-2">
+          {recovery.map((r: any) => (
+            <div key={r.id} className="py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${r.temp === "HOT" ? "bg-red-100 text-red-700" : r.temp === "WARM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{r.temp}</span>
+                <p className="text-sm font-bold text-[#120044]">{r.company}</p>
+                <p className="text-xs text-[#4c4480]">{r.reason} · {r.next_action}</p>
+              </div>
+              {editingId === r.id ? (
+                <div className="mt-2">
+                  <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={2}
+                    className="w-full bg-white border border-[#e4e1f5] rounded p-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" />
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={() => saveRecoveryEdit(r.id)} className="ui-press bg-[#5951ff] text-white text-xs font-bold px-4 py-1.5 rounded">Save</button>
+                    <button onClick={() => setEditingId(null)} className="ui-press border border-[#e4e1f5] text-xs font-bold px-4 py-1.5 rounded">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-[#4c4480] mt-1.5 leading-relaxed">“{r.draft}”</p>
+              )}
+              {editingId !== r.id && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <button onClick={() => approveRecovery(r.id)} disabled={approvingId === r.id}
+                    className="ui-press bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
+                    {approvingId === r.id ? "Sending…" : "Approve & send"}
+                  </button>
+                  <button onClick={() => { setEditingId(r.id); setEditText(r.draft); }}
+                    className="ui-press border border-[#e4e1f5] text-xs font-bold px-4 py-1.5 rounded">Edit</button>
+                  <button onClick={() => skipRecovery(r.id)}
+                    className="ui-press text-[#a099b4] hover:text-[#120044] text-xs font-bold px-2 py-1.5">Skip</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+      )}
 
       {/* Board + rail: journey across, detail beside — no vertical kanban */}
       <div className="grid lg:grid-cols-3 gap-6 items-start">
@@ -410,13 +629,73 @@ export default function DashboardPage() {
               </button>
             )}
           </section>
+
+          {muted.length > 0 && (
+          <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+            <h2 className="text-sm font-bold text-[#120044]">AI paused chats</h2>
+            <p className="text-xs text-[#4c4480] mt-1">You took over — resume when ready.</p>
+            <div className="mt-3 space-y-2">
+              {muted.map((m: any) => (
+                <div key={m.sender_phone} className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-bold text-[#120044] truncate">{m.company}</p>
+                  <button onClick={() => resumeChat(m.sender_phone)}
+                    className="ui-press shrink-0 border border-emerald-500 text-emerald-700 hover:bg-[#ecfdf5] text-[11px] font-bold px-3 py-1 rounded">
+                    Resume AI
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+          )}
         </aside>
       </div>
+
+      {/* Business profile + industry templates */}
+      <section className="bg-white border border-[#e4e1f5] rounded-lg p-5 mt-6">
+        <h2 className="text-base font-bold text-[#120044]">Your business</h2>
+        <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices.</p>
+        <div className="flex flex-wrap gap-2 mt-3">
+          <span className="text-xs font-bold text-[#4c4480] self-center">Start from:</span>
+          {(templates.length ? templates : [{ id: "dental", label: "Dental clinic" }, { id: "salon", label: "Salon & spa" }, { id: "real_estate", label: "Real estate" }, { id: "coaching", label: "Coaching" }, { id: "restaurant", label: "Restaurant" }]).map((t: any) => (
+            <button key={t.id} onClick={() => applyTemplate(t.id)}
+              className="ui-press border border-[#e4e1f5] hover:border-[#5951ff] hover:text-[#5951ff] text-xs font-bold px-3 py-1.5 rounded">
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid md:grid-cols-3 gap-3 mt-4">
+          <label className="block text-xs font-semibold text-[#4c4480]">Business name
+            <input value={profile.business_name || ""} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })}
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+          <label className="block text-xs font-semibold text-[#4c4480]">Hours
+            <input value={profile.hours || ""} onChange={(e) => setProfile({ ...profile, hours: e.target.value })} placeholder="Mon-Sat 10am-8pm"
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+          <label className="block text-xs font-semibold text-[#4c4480]">Avg deal (₹, for pipeline math)
+            <input value={profile.avg_deal_inr || 5000} onChange={(e) => setProfile({ ...profile, avg_deal_inr: e.target.value })}
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+        </div>
+        <label className="block text-xs font-semibold text-[#4c4480] mt-3">Services (one per line)
+          <textarea value={profile.services || ""} onChange={(e) => setProfile({ ...profile, services: e.target.value })} rows={3}
+            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+        <label className="block text-xs font-semibold text-[#4c4480] mt-3">Pricing (leave empty = AI never quotes)
+          <textarea value={profile.pricing || ""} onChange={(e) => setProfile({ ...profile, pricing: e.target.value })} rows={2}
+            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+        <button onClick={saveProfile} disabled={savingProfile}
+          className="ui-press mt-4 bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded flex items-center gap-2">
+          {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+          Save business
+        </button>
+      </section>
 
       <footer className="flex items-center gap-2 px-1 pt-2 text-xs text-[#a099b4]">
           <Search className="w-3.5 h-3.5" />
           DashWin finds public business contacts, verifies WhatsApp, and drafts outreach for your approval.
       </footer>
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-[#120044] text-white text-sm font-semibold px-5 py-3 rounded flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {toast}
+        </div>
+      )}
     </div>
   );
 }
