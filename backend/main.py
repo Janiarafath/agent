@@ -773,16 +773,33 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                     _admin = ""
                 if _admin and prospect:
                     _sig = dict(prospect.business_signals or {})
+                    # START ping: once per conversation, and ONLY when the chat has
+                    # substance (real intent or 2nd message) — never for a lone "hi".
+                    # END ping below covers the close. Nothing in between. Ever.
                     if not _sig.get("boss_first_ping"):
-                        _sig["boss_first_ping"] = True
-                        prospect.business_signals = _sig
-                        db.commit()
-                        _who = prospect.company_name or sender_phone
-                        _ph = prospect.public_phone or sender_phone
-                        _sum = (f"New reply from {_who} ({_ph}): "
-                                f"“{(text or '')[:160]}” — AI answered: “{(ai_reply or '')[:160]}”")
-                        from backend.whatsapp_provider import send_whatsapp_message as _ping
-                        _ping(_admin, _sum, user_id)
+                        _substance = False
+                        _turns0 = 0
+                        try:
+                            _turns0 = db.query(models.Message).filter(
+                                models.Message.prospect_id == prospect.id,
+                                models.Message.direction == "INBOUND").count()
+                            _mm0 = db.query(models.LeadMemory).filter(
+                                models.LeadMemory.prospect_id == prospect.id).first()
+                            _intent0 = (_mm0.intent if _mm0 else "") or ""
+                            _substance = _turns0 >= 2 or _intent0 in (
+                                "booking", "pricing", "question", "complaint")
+                        except Exception:
+                            pass
+                        if _substance:
+                            _sig["boss_first_ping"] = True
+                            prospect.business_signals = _sig
+                            db.commit()
+                            _who = prospect.company_name or sender_phone
+                            _ph = prospect.public_phone or sender_phone
+                            _sum = (f"New reply from {_who} ({_ph}): "
+                                    f"“{(text or '')[:160]}” — AI answered: “{(ai_reply or '')[:160]}”")
+                            from backend.whatsapp_provider import send_whatsapp_message as _ping
+                            _ping(_admin, _sum, user_id)
                     # Conversation-close wrap-up: client declines/defers or says
                     # goodbye after a real exchange -> one outcome ping to boss.
                     if not _sig.get("boss_close_ping"):
