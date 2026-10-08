@@ -416,6 +416,10 @@ def money_overview(user_id: str, db: Session = Depends(get_db)):
         models.Prospect.user_id == user_id).all()
     prof = db.query(models.BusinessProfile).filter(
         models.BusinessProfile.user_id == user_id).first()
+    # Honest pipeline: no invented deal size. Until the owner sets their avg
+    # deal in Business, we show NO rupee estimate — only real counts.
+    avg_set = bool(prof and (prof.avg_deal_inr or 0) > 0 and (
+        (prof.business_name or "").strip() or (prof.services or "").strip()))
     avg = (prof.avg_deal_inr if prof and prof.avg_deal_inr else 5000) or 5000
     mem_by_pid = {}
     try:
@@ -435,7 +439,8 @@ def money_overview(user_id: str, db: Session = Depends(get_db)):
             continue
         mem = mem_by_pid.get(p.id)
         score = mem.lead_score if mem and mem.lead_score else state_score.get(st, 10)
-        pipeline += int(score / 100 * avg)
+        if avg_set:
+            pipeline += int(score / 100 * avg)
         if (mem and mem.temp == "HOT") or st == "INTERESTED":
             hot += 1
     try:
@@ -448,8 +453,12 @@ def money_overview(user_id: str, db: Session = Depends(get_db)):
         meetings = db.query(models.Meeting).filter(
             models.Meeting.user_id == user_id,
             models.Meeting.status == "BOOKED").count()
+        done_rows = db.query(models.Meeting).filter(
+            models.Meeting.user_id == user_id,
+            models.Meeting.status == "DONE").all()
     except Exception:
         pending_rec, sent_rec, meetings = 0, 0, 0
+        done_rows = []
     contacted = sum(1 for p in prospects if str(getattr(p.pipeline_state, "value", p.pipeline_state)) == "CONTACTED")
     try:
         ai_msgs = db.query(models.Message).filter(
@@ -457,16 +466,19 @@ def money_overview(user_id: str, db: Session = Depends(get_db)):
             models.Message.direction == "OUTBOUND").count()
     except Exception:
         ai_msgs = 0
+    recovered_revenue = sum((m.amount_inr or 0) for m in done_rows)
     return {
-        "estimated_pipeline_inr": pipeline,
+        "estimated_pipeline_inr": pipeline if avg_set else None,
         "avg_deal_inr": avg,
+        "avg_deal_set": avg_set,
         "hot_leads": hot,
         "followups_due": contacted + pending_rec,
         "meetings_booked": meetings,
-        "recovered": sent_rec + meetings,
+        "recovered": sent_rec + meetings + len(done_rows),
+        "recovered_revenue_inr": recovered_revenue,
         "unanswered": contacted,
         "hours_saved": round(ai_msgs * 2 / 60, 1),
-        "formula": "expected per lead = score% x avg deal; 2 min saved per AI message",
+        "formula": "expected per lead = score% x YOUR avg deal (set in Business); recovered ₹ = your marked wins only",
     }
 
 
@@ -537,6 +549,32 @@ def get_meetings(user_id: str, db: Session = Depends(get_db)):
                     "provider": m.provider, "interest": m.interest,
                     "status": m.status, "created_at": str(m.created_at)})
     return {"meetings": out}
+
+
+class WonRequest(BaseModel):
+    user_id: str = "default_user"
+    amount_inr: int = 0
+
+
+@app.post("/api/meetings/{meeting_id}/won")
+def mark_meeting_won(meeting_id: int, request: WonRequest, db: Session = Depends(get_db)):
+    """Owner marks a booked call as won with the real collected amount.
+    This is the ONLY source of recovered revenue — everything else is estimate."""
+    m = db.query(models.Meeting).filter(
+        models.Meeting.id == meeting_id,
+        models.Meeting.user_id == request.user_id).first()
+    if not m:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+    m.status = "DONE"
+    try:
+        m.amount_inr = max(0, int(request.amount_inr or 0))
+    except Exception:
+        m.amount_inr = 0
+    p = db.query(models.Prospect).filter(models.Prospect.id == m.prospect_id).first()
+    if p:
+        p.pipeline_state = models.PipelineState.WON
+    db.commit()
+    return {"status": "won", "amount_inr": m.amount_inr}
 
 @app.get("/api/dashboard")
 def get_dashboard_data(user_id: str, db: Session = Depends(get_db)):

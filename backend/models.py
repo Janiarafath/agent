@@ -70,6 +70,7 @@ class Meeting(Base):
     provider = Column(String, default="jitsi")  # "jitsi" | "zoom" | "google"
     interest = Column(String, default="")  # why they're interested / sentiment
     status = Column(String, default="BOOKED")  # BOOKED | DONE | CANCELLED
+    amount_inr = Column(Integer, default=0)  # real money when marked DONE (won)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

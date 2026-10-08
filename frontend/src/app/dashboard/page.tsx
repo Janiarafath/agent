@@ -239,7 +239,6 @@ export default function DashboardPage() {
       alert(`Save failed: ${err?.message || err}`);
     }
   };
-
   const resumeChat = async (sender_phone: string) => {
     if (!user) return;
     try {
@@ -252,6 +251,24 @@ export default function DashboardPage() {
       setMuted((m) => m.filter((x: any) => x.sender_phone !== sender_phone));
     } catch (err: any) {
       alert(`Resume failed: ${err?.message || err}`);
+    }
+  };
+
+  const markWon = async (id: number) => {
+    if (!user) return;
+    const amt = prompt("Collected amount in ₹ (real money only):", "");
+    if (amt === null) return;
+    const amount = parseInt(amt.replace(/[^0-9]/g, "") || "0");
+    if (!amount) { alert("Enter an amount above 0, or Cancel."); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/meetings/${id}/won`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, amount_inr: amount })
+      });
+      if (!res.ok) throw new Error(`Server ${res.status}`);
+      alert(`Won! ₹${amount.toLocaleString("en-IN")} added to recovered revenue.`);
+    } catch (err: any) {
+      alert(`Failed: ${err?.message || err}`);
     }
   };
 
@@ -433,7 +450,11 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Est. pipeline</p>
-                  <p className="tnum text-3xl font-bold mt-1">₹{(money?.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
+                  {money && money.estimated_pipeline_inr != null ? (
+                    <p className="tnum text-3xl font-bold mt-1">₹{(money.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
+                  ) : (
+                    <p className="text-sm font-bold mt-2 text-amber-300">Set your avg deal in Business below ↓</p>
+                  )}
               </div>
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Hot leads</p>
@@ -450,6 +471,9 @@ export default function DashboardPage() {
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Recovered</p>
                   <p className="tnum text-3xl font-bold text-emerald-300 mt-1">{money?.recovered ?? 0}</p>
+                  {(money?.recovered_revenue_inr || 0) > 0 && (
+                    <p className="tnum text-xs font-bold text-emerald-300 mt-0.5">₹{(money.recovered_revenue_inr || 0).toLocaleString("en-IN")} real</p>
+                  )}
               </div>
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Hours saved</p>
@@ -461,7 +485,7 @@ export default function DashboardPage() {
                   Recover Lost Leads
               </button>
           </div>
-          <p className="text-[11px] text-white/40 mt-3">Expected per lead = score × avg deal (₹{(money?.avg_deal_inr || 5000).toLocaleString("en-IN")}). Set your avg deal in Business below.</p>
+          <p className="text-[11px] text-white/40 mt-3">Expected per lead = score × YOUR avg deal. Recovered ₹ counts only deals you mark won.</p>
       </section>
 
       {/* Live job progress */}
@@ -598,6 +622,15 @@ export default function DashboardPage() {
                     <a href={m.link} target="_blank" rel="noreferrer" className="ui-press inline-block mt-2 bg-white text-[#120044] text-xs font-bold px-3 py-1.5 rounded">
                       Join call
                     </a>
+                    {m.status !== "DONE" && (
+                      <button onClick={() => markWon(m.id)}
+                        className="ui-press inline-block mt-2 ml-2 border border-emerald-300 text-emerald-200 hover:bg-white/10 text-xs font-bold px-3 py-1.5 rounded">
+                        Won + ₹
+                      </button>
+                    )}
+                    {m.status === "DONE" && (
+                      <span className="inline-block mt-2 ml-2 text-xs font-bold text-emerald-300">Won ✓</span>
+                    )}
                   </div>
                 ))}
               </div>
