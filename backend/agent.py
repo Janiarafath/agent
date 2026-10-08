@@ -40,6 +40,110 @@ def process_message(user_message: str, sender_phone: str, db, user_id: str = "de
         print(f"[AGENT] prospect lookup fail: {e}")
     return owner_assistant_agent(user_message, sender_phone, db, user_id)
 
+def _boss_status(db, user_id: str) -> str:
+    """One-screen business summary for the boss, straight from the DB."""
+    try:
+        prospects = db.query(models.Prospect).filter(
+            models.Prospect.user_id == user_id).all()
+
+        def n(*states):
+            return sum(1 for p in prospects if str(getattr(p.pipeline_state, "value", p.pipeline_state)) in states)
+
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date()
+        sent_today = replied_today = 0
+        try:
+            for m in db.query(models.Message).filter(
+                    models.Message.channel == "WHATSAPP").all():
+                ts = m.timestamp
+                if ts is None:
+                    continue
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                if ts.date() == today:
+                    if m.direction == "OUTBOUND":
+                        sent_today += 1
+                    elif m.direction == "INBOUND":
+                        replied_today += 1
+        except Exception:
+            pass
+        try:
+            meetings = db.query(models.Meeting).filter(
+                models.Meeting.user_id == user_id,
+                models.Meeting.status == "BOOKED").count()
+        except Exception:
+            meetings = 0
+        try:
+            pending = db.query(models.RecoveryDraft).filter(
+                models.RecoveryDraft.user_id == user_id,
+                models.RecoveryDraft.status == "pending").count()
+        except Exception:
+            pending = 0
+        hot = 0
+        try:
+            for mm in db.query(models.LeadMemory).filter(
+                    models.LeadMemory.user_id == user_id).all():
+                if (mm.temp or "") == "HOT":
+                    hot += 1
+        except Exception:
+            pass
+        return (f"Boss, today's board: {len(prospects)} leads total "
+                f"({n('OUTREACH_READY')} ready, {n('CONTACTED', 'WAITING')} waiting, "
+                f"{n('REPLIED', 'INTERESTED')} engaged). "
+                f"Today: {sent_today} sent, {replied_today} replies. "
+                f"{meetings} meetings booked, {hot} hot, {pending} recoveries waiting. "
+                f"Say 'followup' to nudge waiters or 'approve X' to send.")
+    except Exception as e:
+        return f"Status check hit a snag: {e}"
+
+
+def _guarded_send(db, prospect, user_id: str) -> tuple[bool, str]:
+    """Same guards as the dashboard approve button. Returns (ok, note)."""
+    try:
+        from backend.outreach_queue import can_send, log_message, same_number, get_admin_phone
+        from backend import plans as _plans
+        from backend.whatsapp_provider import send_whatsapp_message
+        ok, reason = can_send(db, prospect, user_id)
+        if not ok:
+            return False, reason
+        ok, reason = _plans.check_limit(db, user_id, "messages")
+        if not ok:
+            return False, reason
+        try:
+            admin_phone = get_admin_phone(db, user_id)
+        except Exception:
+            admin_phone = ""
+        target = "".join(filter(str.isdigit, prospect.public_phone or ""))
+        if not target:
+            return False, "no-phone"
+        if admin_phone and same_number(target, admin_phone):
+            return False, "own-number"
+        draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
+        result = send_whatsapp_message(prospect.public_phone, draft, user_id)
+        if not result or result.get("status") != "sent":
+            err = (result or {}).get("error", "not connected") \
+                if isinstance(result, dict) else "not connected"
+            return False, str(err)[:120]
+        try:
+            sig = dict(prospect.business_signals or {})
+            if result.get("jid"):
+                sig["jid"] = result["jid"]
+                prospect.business_signals = sig
+        except Exception:
+            pass
+        log_message(db, prospect.id, "OUTBOUND", draft, "SENT")
+        _plans.bump(db, user_id, "messages")
+        prospect.pipeline_state = models.PipelineState.CONTACTED
+        db.commit()
+        return True, "sent"
+    except Exception as e:
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return False, str(e)[:150]
+
+
 def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
     """Handles commands from the CEO (You)"""
     groq_api_key = os.getenv("GROQ_API_KEY", "")
@@ -50,17 +154,21 @@ def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
     # 1. Determine Intent (Upgraded Brain)
     intent_prompt = f"""
     You are GrowthPilot, an elite, highly competent B2B Sales SDR employee talking to your CEO/Boss on WhatsApp.
-    
+
     Evaluate the CEO's message and determine the action:
     1. If the CEO asks you to find, search for, or get leads, reply EXACTLY with: "SEARCH|<search query>"
     2. If the CEO says "Yes" to researching, or asks you to research, scrape, or get details on the leads, reply EXACTLY with: "RESEARCH|"
-    3. If it's anything else, reply EXACTLY with: "CHAT|<your response>"
-    
-    CRITICAL TONE RULES FOR CHAT: 
-    - Sound like a real, casual human employee talking to their boss on Slack/WhatsApp. 
+    3. If the CEO asks for status, update, summary, numbers, pipeline, money, meetings, or what happened, reply EXACTLY with: "STATUS|"
+    4. If the CEO asks to send follow-ups or follow up with leads, reply EXACTLY with: "FOLLOWUP|"
+    5. If the CEO asks to approve/send to ONE specific company, reply EXACTLY with: "APPROVE|<company name>"
+    6. If the CEO says approve/send ALL pending, reply EXACTLY with: "APPROVEALL|"
+    7. If it's anything else, reply EXACTLY with: "CHAT|<your response>"
+
+    CRITICAL TONE RULES FOR CHAT:
+    - Sound like a real, casual human employee talking to their boss on Slack/WhatsApp.
     - NEVER use robotic AI phrases like "Understood", "How can I assist", or "Could you clarify".
     - If they say something vague like "Option 1", just say "Got it boss, updating the pipeline now."
-    
+
     CEO Message: {user_message}
     """
     
@@ -127,7 +235,48 @@ def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
             db.commit()
             reply_text += "\nShall I trigger the Research Agent to scrape their websites for contact info?"
             return reply_text
-            
+
+        if response_text.startswith("STATUS|"):
+            return _boss_status(db, user_id)
+
+        if response_text.startswith("FOLLOWUP|"):
+            import threading
+            from backend.scheduler import run_autonomous_followups
+            t = threading.Thread(target=run_autonomous_followups, daemon=True)
+            t.start()
+            return ("On it boss — follow-up engine is running in the background, "
+                    "polite nudges going out to everyone waiting. I'll ping you with results.")
+
+        if response_text.startswith("APPROVEALL|"):
+            cands = db.query(models.Prospect).filter(
+                models.Prospect.user_id == user_id,
+                models.Prospect.pipeline_state == models.PipelineState.OUTREACH_READY
+            ).limit(10).all()
+            if not cands:
+                return "Boss, nothing waiting in Review — all clear."
+            sent, skipped = [], []
+            for p in cands:
+                ok, msg = _guarded_send(db, p, user_id)
+                (sent if ok else skipped).append(f"{p.company_name} ({msg})")
+            out = f"Done boss: sent {len(sent)}, held {len(skipped)}."
+            if sent:
+                out += "\nSent: " + ", ".join(s for s in sent[:5])
+            if skipped:
+                out += "\nHeld: " + ", ".join(s for s in skipped[:5])
+            return out
+
+        if response_text.startswith("APPROVE|"):
+            name = response_text.replace("APPROVE|", "").strip()
+            p = db.query(models.Prospect).filter(
+                models.Prospect.user_id == user_id,
+                models.Prospect.pipeline_state == models.PipelineState.OUTREACH_READY,
+                models.Prospect.company_name.ilike(f"%{name[:30]}%")).first()
+            if not p:
+                return f"Boss, no Review-stage lead matching '{name}'. Check the name on the dashboard."
+            ok, msg = _guarded_send(db, p, user_id)
+            return (f"Sent to {p.company_name}, boss." if ok
+                    else f"Couldn't send to {p.company_name}: {msg}")
+
         return response_text
         
     except Exception as e:
