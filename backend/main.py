@@ -783,6 +783,56 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                                 f"“{(text or '')[:160]}” — AI answered: “{(ai_reply or '')[:160]}”")
                         from backend.whatsapp_provider import send_whatsapp_message as _ping
                         _ping(_admin, _sum, user_id)
+                    # Conversation-close wrap-up: client declines/defers or says
+                    # goodbye after a real exchange -> one outcome ping to boss.
+                    if not _sig.get("boss_close_ping"):
+                        _tl = (text or "").lower()
+                        _decline = any(w in _tl for w in (
+                            "no need", "not now", "not interested", "no thanks",
+                            "let you know", "call me later", "dont call",
+                            "don't call", "leave it", "cancel"))
+                        _turns = 0
+                        try:
+                            _turns = db.query(models.Message).filter(
+                                models.Message.prospect_id == prospect.id,
+                                models.Message.direction == "INBOUND").count()
+                        except Exception:
+                            pass
+                        _farewell = _turns >= 2 and any(w in _tl for w in (
+                            "bye", "thank", "ok", "fine", "done", "great"))
+                        if _decline or _farewell:
+                            _has_meeting = False
+                            try:
+                                _has_meeting = db.query(models.Meeting).filter(
+                                    models.Meeting.prospect_id == prospect.id,
+                                    models.Meeting.status == "BOOKED").count() > 0
+                            except Exception:
+                                pass
+                            if not _has_meeting:
+                                _outcome = "declined" if _decline else "closed"
+                                _sig["boss_close_ping"] = True
+                                prospect.business_signals = _sig
+                                db.commit()
+                                try:
+                                    from backend import memory as _mem
+                                    _mem.update_memory(
+                                        db, user_id, prospect.id, text or "",
+                                        booked_time="")
+                                    _mm = db.query(models.LeadMemory).filter(
+                                        models.LeadMemory.prospect_id == prospect.id).first()
+                                    if _mm:
+                                        _mm.temp = "COLD"
+                                        _mm.next_action = "closed - archive"
+                                        db.commit()
+                                except Exception as _me:
+                                    print(f"[BOSS-CLOSE] memory fail: {_me}")
+                                _who = prospect.company_name or sender_phone
+                                _ph = prospect.public_phone or sender_phone
+                                _wrap = (f"Closed ({_outcome}): {_who} ({_ph}) — "
+                                         f"last word: “{(text or '')[:160]}”. "
+                                         f"{_turns} msg(s) exchanged.")
+                                from backend.whatsapp_provider import send_whatsapp_message as _ping2
+                                _ping2(_admin, _wrap, user_id)
             except Exception as _e:
                 print(f"[BOSS-PING] fail: {_e}")
 
