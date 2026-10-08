@@ -17,6 +17,7 @@ interface DashboardData {
     id: number;
     company_name: string;
     pipeline_state: string;
+    public_phone: string;
     business_signals: any;
     ai_muted: boolean;
   }[];
@@ -53,48 +54,61 @@ export default function DashboardPage() {
   const [templates, setTemplates] = useState<any[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const toastShown = useRef<Set<number>>(new Set());
+  const [lastUpdated, setLastUpdated] = useState<number>(0);
+  const [nowTick, setNowTick] = useState<number>(Date.now());
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+
+  const refreshAll = () => {
+    if (!user) return;
+    fetch(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { setData(data); setLoading(false); setLastUpdated(Date.now()); })
+      .catch((err) => { setError(err.message); setLoading(false); });
+    fetch(`${API_BASE}/api/meetings?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { setMeetings(data.meetings || []); })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/money?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { setMoney(data); })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/recovery?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { setRecovery(data.recovery || []); })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/muted?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => { setMuted(data.muted || []); })
+      .catch(() => {});
+    fetch(`${API_BASE}/api/jobs?user_id=${user.uid}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const jobs = data.jobs || [];
+        const active = jobs.find((j: any) => j.status === "queued" || j.status === "running");
+        setJob(active || jobs[0] || null);
+        const done = jobs.find((j: any) => j.status === "done");
+        if (done && done.result && !toastShown.current.has(done.id)) {
+          toastShown.current.add(done.id);
+          setToast(done.result);
+          setTimeout(() => setToast(""), 8000);
+        }
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
-    const fetchDashboard = () => {
-      fetch(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => { setData(data); setLoading(false); })
-        .catch((err) => { setError(err.message); setLoading(false); });
-      fetch(`${API_BASE}/api/meetings?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => { setMeetings(data.meetings || []); })
-        .catch(() => {});
-      fetch(`${API_BASE}/api/money?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => { setMoney(data); })
-        .catch(() => {});
-      fetch(`${API_BASE}/api/recovery?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => { setRecovery(data.recovery || []); })
-        .catch(() => {});
-      fetch(`${API_BASE}/api/muted?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => { setMuted(data.muted || []); })
-        .catch(() => {});
-      fetch(`${API_BASE}/api/jobs?user_id=${user.uid}`)
-        .then((res) => res.json())
-        .then((data) => {
-          const jobs = data.jobs || [];
-          const active = jobs.find((j: any) => j.status === "queued" || j.status === "running");
-          setJob(active || jobs[0] || null);
-          const done = jobs.find((j: any) => j.status === "done");
-          if (done && done.result && !toastShown.current.has(done.id)) {
-            toastShown.current.add(done.id);
-            setToast(done.result);
-            setTimeout(() => setToast(""), 8000);
-          }
-        })
-        .catch(() => {});
-    };
-    fetchDashboard();
-    const interval = setInterval(fetchDashboard, 5000);
-    return () => clearInterval(interval);
+    refreshAll();
+    const interval = setInterval(refreshAll, 3000);
+    const onFocus = () => refreshAll();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshAll(); });
+    return () => { clearInterval(interval); window.removeEventListener("focus", onFocus); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   useEffect(() => {
@@ -139,6 +153,7 @@ export default function DashboardPage() {
     if (!user) return;
     setIsFollowup(true);
     try { await fetch(`${API_BASE}/api/trigger-followups`, { method: "POST" }); } catch (err) {}
+    refreshAll();
     setIsFollowup(false);
   };
 
@@ -182,6 +197,7 @@ export default function DashboardPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
       alert("Sent!");
+      refreshAll();
     } catch (err: any) {
       alert(`Not sent: ${err?.message || err}`);
     }
@@ -211,6 +227,7 @@ export default function DashboardPage() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
       alert("Recovery sent!");
+      refreshAll();
     } catch (err: any) {
       alert(`Not sent: ${err?.message || err}`);
     }
@@ -249,6 +266,7 @@ export default function DashboardPage() {
       const json = await res.json().catch(() => ({}));
       alert(json.status === "resumed" ? "AI resumed for this chat." : "Nothing was muted.");
       setMuted((m) => m.filter((x: any) => x.sender_phone !== sender_phone));
+      refreshAll();
     } catch (err: any) {
       alert(`Resume failed: ${err?.message || err}`);
     }
@@ -393,7 +411,13 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#120044]">Pipeline Overview</h1>
-            <p className="text-sm text-[#4c4480] mt-0.5">Live metrics from your DashWin agent.</p>
+            <p className="text-sm text-[#4c4480] mt-0.5 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              Live{lastUpdated ? ` · updated ${Math.max(0, Math.round((nowTick - lastUpdated) / 1000))}s ago` : ""}
+            </p>
         </div>
         <button
             onClick={() => !waConnected && setShowQRModal(true)}
@@ -581,10 +605,22 @@ export default function DashboardPage() {
                   <p className="text-[11px] font-medium text-[#a099b4] truncate">{p.business_signals?.source || "SYSTEM"}</p>
                   <div className="md:text-right">
                     {activeStage === "review" ? (
-                      <button onClick={() => approveOutreach(p.id)} disabled={approvingId === p.id}
-                        className="ui-press bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
-                        {approvingId === p.id ? "Sending…" : "Approve"}
-                      </button>
+                      p.public_phone ? (
+                        <span className="inline-flex items-center gap-2">
+                          {p.business_signals?.whatsapp_exists === true && (
+                            <span className="text-[10px] font-bold text-emerald-600">WA ✓</span>
+                          )}
+                          {p.business_signals?.whatsapp_exists !== true && (
+                            <span className="text-[10px] font-bold text-[#a099b4]">unverified</span>
+                          )}
+                          <button onClick={() => approveOutreach(p.id)} disabled={approvingId === p.id}
+                            className="ui-press bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
+                            {approvingId === p.id ? "Sending…" : "Approve"}
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-[#a099b4] border border-dashed border-[#e4e1f5] px-3 py-1.5 rounded">no number</span>
+                      )
                     ) : activeStage === "research" ? (
                       <span className="inline-flex items-center gap-1.5 text-amber-600 text-xs font-bold"><Loader2 className="w-3 h-3 animate-spin" /> Scraping…</span>
                     ) : activeStage === "await" ? (

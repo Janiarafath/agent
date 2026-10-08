@@ -279,9 +279,9 @@ def discover_leads(category: str, city: str, max_results: int = 30):
             extra = extract_from_website(lead["website"], city=city)
             phone = extra["phone"] or ""
             email = extra["email"] or ""
-        if not phone and not lead.get("website"):
-            continue  # no contactable info, skip
-        dedupe_key = phone or lead.get("website", "").lower()
+        if not phone:
+            continue  # no callable number -> never recommend (no dead Approve buttons)
+        dedupe_key = phone
         if not dedupe_key or dedupe_key in seen:
             continue
         seen.add(dedupe_key)
