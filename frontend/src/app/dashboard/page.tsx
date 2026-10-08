@@ -640,6 +640,11 @@ export default function DashboardPage() {
 
         {/* Right rail: meetings + activity */}
         <aside className="space-y-6">
+          <section className="bg-[#120044] rounded-lg p-5 text-white overflow-hidden">
+            <h2 className="text-sm font-bold">Watch DashWin work</h2>
+            <p className="text-xs text-white/60 mt-1">20-second launch cut.</p>
+            <video className="w-full rounded mt-3" controls preload="none" poster="/dashwin-poster.jpg" src="/dashwin-launch.mp4" />
+          </section>
           <section className="bg-[#120044] rounded-lg p-5 text-white">
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4" />
