@@ -1,6 +1,7 @@
 "use client";
 
-import { LayoutDashboard, Users, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { DashWinLogo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import Link from "next/link";
@@ -13,19 +14,14 @@ export const Sidebar = () => {
 
     const navItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-        { name: "Site", href: "/", icon: Users },
+        { name: "Settings", href: "/settings", icon: Settings },
     ];
 
     return (
         <div className={`relative transition-all duration-200 h-screen bg-white border-r border-slate-200 flex flex-col ${isCollapsed ? 'w-20' : 'w-64'}`}>
             {/* Header */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
-                {!isCollapsed && (
-                    <span className="flex items-center gap-2">
-                        <span className="w-7 h-7 bg-indigo-600 rounded-[10px] flex items-center justify-center text-white text-sm font-bold">D</span>
-                        <span className="font-bold text-base text-slate-900 tracking-tight">DashWin</span>
-                    </span>
-                )}
+                {!isCollapsed && <DashWinLogo />}
                 <button 
                     onClick={() => setIsCollapsed(!isCollapsed)}
                     className="p-1.5 rounded-md hover:bg-slate-100 text-slate-500 transition-colors mx-auto"

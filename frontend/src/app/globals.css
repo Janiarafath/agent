@@ -1,51 +1,63 @@
 @import "tailwindcss";
 
-/* DashWin tokens — derived from DESIGN.md (Outreach signals).
-   Brand violet #5951FF, ink #120044, Lexend, 4px base + 4px radius, no shadows. */
-:root {
-  --background: #ffffff;
-  --foreground: #120044;
-  --surface: #ffffff;
-  --surface-soft: #f6f5ff;
-  --border: #e4e1f5;
-  --accent: #5951ff;
-  --accent-strong: #4640e0;
-  --accent-soft: #efedff;
-  --ink-soft: #4c4480;
-  --ink-faint: #a099b4;
-  --success: #047857;
-  --success-soft: #ecfdf5;
-  --warning: #b45309;
-  --warning-soft: #fffbeb;
-  --danger: #dc2626;
-  --danger-soft: #fef2f2;
-  --radius: 4px;
-  --radius-card: 8px;
+@theme {
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222.2 84% 4.9%);
+  
+  --color-primary: #5951FF;
+  --color-primary-foreground: hsl(210 40% 98%);
+  
+  --color-border: hsl(214.3 31.8% 91.4%);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: "Lexend", ui-sans-serif, system-ui, sans-serif;
+.hero-outreach {
+  background-color: #05001A;
+  background-image: 
+    radial-gradient(circle at 85% 15%, rgba(235, 190, 100, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 15% 85%, rgba(89, 81, 255, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(89, 81, 255, 0.1) 0%, transparent 60%);
 }
 
-/* Numeric data always tabular. */
 .tnum {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
 }
 
-/* Motion: short, interruptible, functional only. */
+/* DashWin motion kit: transform/opacity only, interruptible. */
 .ui-press {
   transition: transform 150ms ease-out, background-color 150ms ease-out, border-color 150ms ease-out;
 }
-.ui-press:active {
-  transform: scale(0.98);
+.ui-press:active { transform: scale(0.98); }
+
+@keyframes drift-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(60px, -40px) scale(1.15); }
 }
+@keyframes drift-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-50px, 50px) scale(1.1); }
+}
+.animate-drift-a { animation: drift-a 12s ease-in-out infinite; }
+.animate-drift-b { animation: drift-b 14s ease-in-out infinite; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee { animation: marquee 28s linear infinite; }
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+.animate-floaty { animation: floaty 6s ease-in-out infinite; }

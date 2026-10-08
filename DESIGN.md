@@ -1,5 +1,11 @@
 # DESIGN.md
 
+> DashWin evolution (owner direction): keep Outreach tokens (violet `#5951FF`,
+> ink `#120044`, Lexend, 4px) as the base, PLUS rich motion (framer-motion reveals,
+> drifting aurora blobs, marquee, floats), gradients (brand-violet headlines, CTAs,
+> dark bands), and glass (blur navbar, floating proof chips, frosted cards).
+> Motion is transform/opacity-only; no layout thrash.
+
 ## Overview
 
 This document describes the design system signals detected on the Outreach marketing site (`https://www.outreach.ai/`), titled "Agentic AI Platform for Revenue Teams | Outreach" [detected]. It is intended as a reference for AI coding agents building or extending UI that should feel consistent with the observed brand surface.

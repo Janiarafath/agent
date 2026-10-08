@@ -475,7 +475,7 @@ export default function DashboardPage() {
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Est. pipeline</p>
                   {money && money.estimated_pipeline_inr != null ? (
-                    <p className="tnum text-3xl font-bold mt-1">₹{(money.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
+                    <p className="tnum text-3xl font-bold mt-1 bg-gradient-to-r from-white via-indigo-200 to-[#8b85ff] bg-clip-text text-transparent">₹{(money.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
                   ) : (
                     <p className="text-sm font-bold mt-2 text-amber-300">Set your avg deal in Business below ↓</p>
                   )}

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { Activity, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
+import { DashWinLogo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -31,13 +33,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-white">
-      <div className="hidden md:flex w-[44%] flex-col justify-between p-12 bg-[#120044] text-white">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="w-7 h-7 bg-[#5951ff] rounded flex items-center justify-center text-white text-sm font-bold">D</span>
-          <span className="font-bold text-lg tracking-tight">DashWin</span>
+      <div className="hidden md:flex w-[44%] flex-col justify-between p-12 bg-[#120044] text-white relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#5951FF]/30 blur-[110px] animate-drift-a pointer-events-none" />
+        <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-fuchsia-500/20 blur-[120px] animate-drift-b pointer-events-none" />
+        <Link href="/" className="relative z-10 w-max">
+          <DashWinLogo dark />
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold leading-tight tracking-tight">Your pipeline,<br />warming itself up.</h1>
+        <div className="relative z-10">
+          <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+            className="text-3xl font-bold leading-tight tracking-tight">Your pipeline,<br />warming itself up.</motion.h1>
           <ul className="mt-6 space-y-3 text-sm text-white/70">
             <li className="flex gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /> Leads found while you were away</li>
             <li className="flex gap-3"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /> Replies answered like a human SDR</li>
@@ -48,9 +52,8 @@ export default function Login() {
       </div>
       <div className="flex-1 flex items-center justify-center bg-white p-6">
         <div className="w-full max-w-sm">
-          <Link href="/" className="md:hidden flex items-center gap-2 mb-6">
-            <span className="w-7 h-7 bg-[#5951ff] rounded flex items-center justify-center text-white text-sm font-bold">D</span>
-            <span className="font-bold text-[#120044]">DashWin</span>
+          <Link href="/" className="md:hidden mb-6 w-max">
+            <DashWinLogo />
           </Link>
           <h2 className="text-2xl font-bold tracking-tight text-[#120044]">{isLogin ? "Welcome back" : "Create account"}</h2>
           <p className="text-sm text-[#4c4480] mt-1 mb-6">{isLogin ? "Sign in to your sales engine." : "Start winning pipelines today."}</p>
