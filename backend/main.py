@@ -762,7 +762,30 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                     log_message(db, prospect.id, "OUTBOUND", ai_reply, "SENT" if ok else "FAILED")
                 except Exception:
                     pass
-            
+            # Boss update: first live exchange per conversation — who messaged,
+            # what they said, what AI answered. Once only (flagged).
+            try:
+                from backend.outreach_queue import get_admin_phone as _gap
+                _admin = ""
+                try:
+                    _admin = _gap(db, user_id)
+                except Exception:
+                    _admin = ""
+                if _admin and prospect:
+                    _sig = dict(prospect.business_signals or {})
+                    if not _sig.get("boss_first_ping"):
+                        _sig["boss_first_ping"] = True
+                        prospect.business_signals = _sig
+                        db.commit()
+                        _who = prospect.company_name or sender_phone
+                        _ph = prospect.public_phone or sender_phone
+                        _sum = (f"New reply from {_who} ({_ph}): "
+                                f"“{(text or '')[:160]}” — AI answered: “{(ai_reply or '')[:160]}”")
+                        from backend.whatsapp_provider import send_whatsapp_message as _ping
+                        _ping(_admin, _sum, user_id)
+            except Exception as _e:
+                print(f"[BOSS-PING] fail: {_e}")
+
     except Exception as e:
         print(f"Baileys webhook error: {e}")
     return {"status": "ok"}
