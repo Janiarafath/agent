@@ -134,3 +134,19 @@ class Usage(Base):
     day = Column(String, index=True)  # YYYY-MM-DD (Asia/Kolkata)
     messages_out = Column(Integer, default=0)
     ai_calls = Column(Integer, default=0)
+
+class RecoveryDraft(Base):
+    """Missed-lead recovery: scored opportunity + owner-approved message.
+    Flow: pending -> (edited) -> approved/sent | skipped."""
+    __tablename__ = "recovery_drafts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    prospect_id = Column(Integer, ForeignKey("prospects.id"), index=True)
+    temp = Column(String, default="WARM")  # HOT | WARM | COLD
+    score = Column(Integer, default=0)
+    reason = Column(String, default="")  # why this lead needs recovery
+    next_action = Column(String, default="")
+    draft = Column(String, default="")  # editable message text
+    status = Column(String, default="pending")  # pending | sent | skipped
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -264,6 +264,106 @@ def resume_ai(request: ResumeRequest, db: Session = Depends(get_db)):
     return {"status": "resumed" if n else "nothing-muted"}
 
 
+class RecoveryEditRequest(BaseModel):
+    user_id: str = "default_user"
+    draft: str = ""
+
+
+@app.get("/api/recovery")
+def list_recovery(user_id: str, db: Session = Depends(get_db)):
+    """Pending recovery opportunities: temp, reason, editable draft."""
+    rows = db.query(models.RecoveryDraft).filter(
+        models.RecoveryDraft.user_id == user_id,
+        models.RecoveryDraft.status == "pending").order_by(
+        models.RecoveryDraft.score.desc()).all()
+    out = []
+    for r in rows:
+        p = db.query(models.Prospect).filter(models.Prospect.id == r.prospect_id).first()
+        out.append({"id": r.id, "company": p.company_name if p else "?",
+                    "phone": p.public_phone if p else "",
+                    "temp": r.temp, "score": r.score, "reason": r.reason,
+                    "next_action": r.next_action, "draft": r.draft,
+                    "created_at": str(r.created_at)})
+    return {"recovery": out}
+
+
+@app.patch("/api/recovery/{draft_id}")
+def edit_recovery(draft_id: int, request: RecoveryEditRequest,
+                  db: Session = Depends(get_db)):
+    """Owner edits the recovery message before sending."""
+    r = db.query(models.RecoveryDraft).filter(
+        models.RecoveryDraft.id == draft_id,
+        models.RecoveryDraft.user_id == request.user_id,
+        models.RecoveryDraft.status == "pending").first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Pending draft not found")
+    r.draft = (request.draft or "")[:2000]
+    db.commit()
+    return {"status": "saved", "id": r.id}
+
+
+@app.post("/api/recovery/{draft_id}/approve")
+def approve_recovery(draft_id: int, user_id: str, db: Session = Depends(get_db)):
+    """Owner-approved recovery send. Same guards as cold outreach + plan meter."""
+    from backend.outreach_queue import can_send, log_message, same_number, get_admin_phone
+    from backend import plans as _plans
+    r = db.query(models.RecoveryDraft).filter(
+        models.RecoveryDraft.id == draft_id,
+        models.RecoveryDraft.user_id == user_id,
+        models.RecoveryDraft.status == "pending").first()
+    if not r:
+        raise HTTPException(status_code=404, detail="Pending draft not found")
+    prospect = db.query(models.Prospect).filter(
+        models.Prospect.id == r.prospect_id,
+        models.Prospect.user_id == user_id).first()
+    if not prospect:
+        raise HTTPException(status_code=404, detail="Prospect not found")
+    ok, reason = can_send(db, prospect, user_id)
+    if not ok:
+        if reason.startswith("daily-cap"):
+            raise HTTPException(status_code=429, detail=f"Daily cap reached ({reason}). Try tomorrow.")
+        raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
+    ok, reason = _plans.check_limit(db, user_id, "messages")
+    if not ok:
+        raise HTTPException(status_code=429, detail=f"Plan limit reached ({reason}). Upgrade to send more.")
+    try:
+        admin_phone = get_admin_phone(db, user_id)
+    except Exception:
+        admin_phone = ""
+    target = "".join(filter(str.isdigit, prospect.public_phone or ""))
+    if not target:
+        raise HTTPException(status_code=400, detail="Prospect has no phone number")
+    if admin_phone and same_number(target, admin_phone):
+        raise HTTPException(status_code=400, detail="Blocked: lead phone is your own number")
+    result = send_whatsapp_message(prospect.public_phone, r.draft, user_id)
+    if not result or result.get("status") != "sent":
+        err = (result or {}).get("error", "WhatsApp service unreachable/not connected") \
+            if isinstance(result, dict) else "WhatsApp service unreachable/not connected"
+        raise HTTPException(status_code=502, detail=f"Not sent: {err}")
+    try:
+        sig = dict(prospect.business_signals or {})
+        if result.get("jid"):
+            sig["jid"] = result["jid"]
+            prospect.business_signals = sig
+    except Exception:
+        pass
+    log_message(db, prospect.id, "OUTBOUND", r.draft, "SENT")
+    _plans.bump(db, user_id, "messages")
+    r.status = "sent"
+    if prospect.pipeline_state != models.PipelineState.DO_NOT_CONTACT:
+        prospect.pipeline_state = models.PipelineState.CONTACTED
+    db.commit()
+    return {"status": "Sent!"}
+
+
+@app.post("/api/trigger-recovery")
+def trigger_recovery(user_id: str, background_tasks: BackgroundTasks):
+    """Queue a recovery scan (detect + score + draft). Results land as pending."""
+    from backend.scheduler import run_recovery_scan
+    background_tasks.add_task(run_recovery_scan, user_id)
+    return {"status": f"Recovery scan queued for {user_id}"}
+
+
 @app.get("/api/meetings")
 def get_meetings(user_id: str, db: Session = Depends(get_db)):
     """Boss view: every booked meeting with company, agreed time, interest + join link."""

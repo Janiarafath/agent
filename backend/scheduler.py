@@ -134,6 +134,19 @@ def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Ara
 # Start the scheduler
 scheduler = BackgroundScheduler()
 
+def run_recovery_scan(user_id: str = "default_user"):
+    """Daily missed-lead recovery: detect + score + draft (owner approves)."""
+    print(f"[RECOVERY] scan starting for {user_id} ...")
+    db = SessionLocal()
+    try:
+        from backend.recovery import run_scan
+        counts = run_scan(db, user_id)
+        print(f"[RECOVERY] scan done for {user_id}: {counts}")
+    except Exception as e:
+        print(f"[RECOVERY] scan error: {e}")
+    finally:
+        db.close()
+
 def run_autonomous_followups():
     """Scans the database for CONTACTED prospects and sends a polite follow-up."""
     print("[FOLLOW-UP ENGINE] Waking up to scan for non-repliers...")
@@ -214,6 +227,7 @@ def run_autonomous_followups():
 # Run every day at 9 AM and 10 AM (for demo purposes)
 scheduler.add_job(run_autonomous_discovery, 'cron', hour=9, minute=0)
 scheduler.add_job(run_autonomous_followups, 'cron', hour=10, minute=0)
+scheduler.add_job(run_recovery_scan, 'cron', hour=8, minute=30)
 
 def start_scheduler():
     scheduler.start()
