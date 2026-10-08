@@ -79,6 +79,7 @@ class UserSettings(Base):
 
     user_id = Column(String, primary_key=True)
     admin_phone = Column(String, default="")  # boss WhatsApp number for HOT LEAD pings
+    plan = Column(String, default="free")  # free | starter | growth | pro
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 class TakeoverMute(Base):
@@ -91,3 +92,45 @@ class TakeoverMute(Base):
     sender_phone = Column(String, index=True)
     muted = Column(Boolean, default=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class BusinessProfile(Base):
+    """The business the AI receptionist speaks for. Grounds replies so pricing/
+    hours/services are never hallucinated: only answer from here, else deflect."""
+    __tablename__ = "business_profiles"
+
+    user_id = Column(String, primary_key=True)
+    business_name = Column(String, default="")
+    industry = Column(String, default="")  # dental | salon | real_estate | coaching | restaurant | other
+    services = Column(String, default="")  # free text list
+    pricing = Column(String, default="")  # publishable pricing, "" = do not quote
+    hours = Column(String, default="")
+    location = Column(String, default="")
+    faq = Column(JSON, default=list)  # [{"q": "...", "a": "..."}]
+    tone = Column(String, default="warm, brief, human")
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class LeadMemory(Base):
+    """Structured conversation memory per lead. Updated cheaply (no extra AI call)."""
+    __tablename__ = "lead_memory"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    prospect_id = Column(Integer, ForeignKey("prospects.id"), index=True)
+    intent = Column(String, default="")  # question | booking | pricing | complaint | other
+    service = Column(String, default="")
+    preferred_datetime = Column(String, default="")
+    booking_status = Column(String, default="none")  # none | pending | booked
+    lead_score = Column(Integer, default=0)  # 0-100 heuristic
+    temp = Column(String, default="COLD")  # HOT | WARM | COLD (Phase 2 scorer refines)
+    next_action = Column(String, default="")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class Usage(Base):
+    """Per-tenant daily metering for plan enforcement (our-side counts)."""
+    __tablename__ = "usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True)
+    day = Column(String, index=True)  # YYYY-MM-DD (Asia/Kolkata)
+    messages_out = Column(Integer, default=0)
+    ai_calls = Column(Integer, default=0)

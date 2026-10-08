@@ -181,12 +181,18 @@ def run_autonomous_followups():
             
             # Send the follow-up to the PROSPECT (was admin_phone demo = self-DM bug)
             from backend.outreach_queue import can_send as _can_send, log_message as _log
+            from backend import plans as _plansf
             ok, reason = _can_send(db, p, p.user_id or "default_user")
+            if not ok:
+                print(f"[FOLLOW-UP ENGINE] skip {p.company_name}: {reason}")
+                continue
+            ok, reason = _plansf.check_limit(db, p.user_id or "default_user", "messages")
             if not ok:
                 print(f"[FOLLOW-UP ENGINE] skip {p.company_name}: {reason}")
                 continue
             send_whatsapp_message(p.public_phone, draft, p.user_id or "default_user")
             _log(db, p.id, "OUTBOUND", draft, "SENT")
+            _plansf.bump(db, p.user_id or "default_user", "messages")
             
             # Update state to WAITING so we don't spam them every day
             p.pipeline_state = models.PipelineState.WAITING

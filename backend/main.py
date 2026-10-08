@@ -10,8 +10,11 @@ from pathlib import Path as _Path
 # Load repo-root .env by absolute path (robust to any working directory)
 load_dotenv(dotenv_path=_Path(__file__).resolve().parent.parent / ".env")
 
-# Create database tables (For demo/initialization)
-Base.metadata.create_all(bind=engine)
+# Create database tables (best-effort: a DB blip must never kill boot)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"[BOOT] create_all deferred (DB unreachable?): {e}")
 
 from backend.scheduler import start_scheduler, run_autonomous_discovery
 from contextlib import asynccontextmanager
@@ -75,6 +78,10 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
         if reason == "outside-work-hours-recipient":
             raise HTTPException(status_code=403, detail="Outside recipient work hours (8am-8pm). Try again 8am-8pm IST.")
         raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
+    from backend import plans as _plans
+    ok, reason = _plans.check_limit(db, user_id, "messages")
+    if not ok:
+        raise HTTPException(status_code=429, detail=f"Plan limit reached ({reason}). Upgrade to send more.")
     draft = (prospect.business_signals or {}).get("draft_message", "Hello!")
 
     # Self-DM guard: never send to the owner's own number (dashboard setting).
@@ -107,6 +114,8 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
     
     prospect.pipeline_state = models.PipelineState.CONTACTED
     db.commit()
+    from backend import plans as _plans2
+    _plans2.bump(db, user_id, "messages")
     return {"status": "Sent!"}
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -147,28 +156,112 @@ def client_log(request: ClientLogRequest):
 
 
 @app.get("/api/settings")
-def get_settings(user_id: str, db: Session = Depends(get_db)):    """Owner settings (boss alert number, ...)."""
+def get_settings(user_id: str, db: Session = Depends(get_db)):
+    """Owner settings (boss alert number, ...)."""
     s = db.query(models.UserSettings).filter(models.UserSettings.user_id == user_id).first()
     return {"admin_phone": (s.admin_phone if s and s.admin_phone else "")}
 
 
 class SettingsRequest(BaseModel):
     user_id: str = "default_user"
-    admin_phone: str = ""
+    admin_phone: str | None = None  # None = leave untouched
+    plan: str | None = None  # None = leave untouched
 
 
 @app.post("/api/settings")
 def save_settings(request: SettingsRequest, db: Session = Depends(get_db)):
-    """Save owner settings from dashboard (boss WhatsApp number for HOT LEAD pings)."""
-    digits = "".join(filter(str.isdigit, request.admin_phone or ""))
+    """Save owner settings from dashboard (boss WhatsApp number, plan)."""
+    from backend import plans as _plans
     s = db.query(models.UserSettings).filter(models.UserSettings.user_id == request.user_id).first()
     if not s:
-        s = models.UserSettings(user_id=request.user_id, admin_phone=digits)
+        s = models.UserSettings(user_id=request.user_id, admin_phone="", plan="free")
         db.add(s)
-    else:
-        s.admin_phone = digits
+    if request.admin_phone is not None:
+        s.admin_phone = "".join(filter(str.isdigit, request.admin_phone or ""))
+    if (request.plan or "") in _plans.TIERS:
+        s.plan = request.plan
     db.commit()
-    return {"status": "saved", "admin_phone": digits}
+    db.refresh(s)
+    return {"status": "saved", "admin_phone": s.admin_phone, "plan": s.plan,
+            "usage": _plans.usage_summary(db, request.user_id)}
+
+
+@app.get("/api/usage")
+def get_usage(user_id: str, db: Session = Depends(get_db)):
+    """Plan + meter readings for the dashboard."""
+    from backend import plans as _plans
+    return _plans.usage_summary(db, user_id)
+
+
+class ProfileRequest(BaseModel):
+    user_id: str = "default_user"
+    business_name: str = ""
+    industry: str = ""
+    services: str = ""
+    pricing: str = ""
+    hours: str = ""
+    location: str = ""
+    faq: list = []
+    tone: str = ""
+
+
+@app.get("/api/profile")
+def get_profile(user_id: str, db: Session = Depends(get_db)):
+    """Business profile the AI receptionist answers from."""
+    p = db.query(models.BusinessProfile).filter(
+        models.BusinessProfile.user_id == user_id).first()
+    if not p:
+        return {"business_name": "", "industry": "", "services": "", "pricing": "",
+                "hours": "", "location": "", "faq": [], "tone": ""}
+    return {"business_name": p.business_name or "", "industry": p.industry or "",
+            "services": p.services or "", "pricing": p.pricing or "",
+            "hours": p.hours or "", "location": p.location or "",
+            "faq": p.faq or [], "tone": p.tone or ""}
+
+
+@app.post("/api/profile")
+def save_profile(request: ProfileRequest, db: Session = Depends(get_db)):
+    """Save the business profile. Empty pricing = AI must never quote prices."""
+    p = db.query(models.BusinessProfile).filter(
+        models.BusinessProfile.user_id == request.user_id).first()
+    if not p:
+        p = models.BusinessProfile(user_id=request.user_id)
+        db.add(p)
+    p.business_name = (request.business_name or "")[:200]
+    p.industry = (request.industry or "")[:50]
+    p.services = (request.services or "")[:2000]
+    p.pricing = (request.pricing or "")[:2000]
+    p.hours = (request.hours or "")[:500]
+    p.location = (request.location or "")[:300]
+    p.faq = request.faq or []
+    p.tone = (request.tone or "")[:200]
+    db.commit()
+    return {"status": "saved"}
+
+
+class ResumeRequest(BaseModel):
+    user_id: str = "default_user"
+    sender_phone: str = ""
+
+
+@app.post("/api/resume")
+def resume_ai(request: ResumeRequest, db: Session = Depends(get_db)):
+    """Resume AI for a muted conversation (owner took over, now hands back)."""
+    n = 0
+    m = db.query(models.TakeoverMute).filter(
+        models.TakeoverMute.user_id == request.user_id,
+        models.TakeoverMute.sender_phone == request.sender_phone).first()
+    if m and m.muted:
+        m.muted = False
+        n += 1
+    p = db.query(models.Prospect).filter(
+        models.Prospect.user_id == request.user_id,
+        models.Prospect.public_phone == request.sender_phone).first()
+    if p and p.ai_muted:
+        p.ai_muted = False
+        n += 1
+    db.commit()
+    return {"status": "resumed" if n else "nothing-muted"}
 
 
 @app.get("/api/meetings")
@@ -354,7 +447,13 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                 _send(remote_jid, "Understood — we won't message you again.", user_id)
                 return {"status": "opted-out"}
             from backend.agent import process_message
-            ai_reply = process_message(text, sender_phone, db, user_id)
+            from backend import plans as _plans3
+            ok_ai, _ = _plans3.check_limit(db, user_id, "ai")
+            if not ok_ai:
+                # Plan AI quota spent: stay responsive with a canned reply (no AI cost).
+                ai_reply = "Thanks for messaging! Our team will get back to you shortly."
+            else:
+                ai_reply = process_message(text, sender_phone, db, user_id)
 
             from backend.whatsapp_provider import send_whatsapp_message
             # Send to the full JID (LID-safe), not bare digits
