@@ -42,12 +42,28 @@ def same_number(a: str, b: str) -> bool:
 
 
 def get_admin_phone(db: Session, user_id: str) -> str:
-    """Owner's boss number: dashboard setting first, env fallback. Never hardcoded."""
+    """Owner's boss number: this login's dashboard setting first, else the most
+    recently saved number on ANY login (single-owner convenience), else env.
+    Never hardcoded. Multi-tenant data stays per-user; this is only a fallback."""
     try:
         s = db.query(models.UserSettings).filter(
             models.UserSettings.user_id == user_id).first()
         if s and (s.admin_phone or "").strip():
             return s.admin_phone.strip()
+        try:
+            latest = db.query(models.UserSettings).filter(
+                models.UserSettings.admin_phone != "").filter(
+                models.UserSettings.admin_phone.isnot(None)).order_by(
+                models.UserSettings.updated_at.desc()).first()
+            # updated_at may be NULL on old rows; fall back to any row then
+            if not latest or not (latest.admin_phone or "").strip():
+                latest = db.query(models.UserSettings).filter(
+                    models.UserSettings.admin_phone != "").first()
+            if latest and (latest.admin_phone or "").strip():
+                print(f"[ADMIN] fallback to number saved under another login")
+                return latest.admin_phone.strip()
+        except Exception:
+            pass
     except Exception:
         pass
     import os as _os

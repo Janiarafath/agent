@@ -441,7 +441,7 @@ export default function DashboardPage() {
                   </div>
               </div>
               <div className="flex-1 w-full">
-                  <label className="text-xs font-semibold text-[#4c4480] uppercase tracking-wider mb-2 block">Boss alerts number</label>
+                  <label className="text-xs font-semibold text-[#4c4480] uppercase tracking-wider mb-2 block">Your number = boss (AI obeys it, never pitches it)</label>
                   <div className="relative">
                       <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
                       <input type="text" placeholder="919876543210"

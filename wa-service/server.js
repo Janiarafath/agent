@@ -33,9 +33,9 @@ function textOf(msg) {
     return m.conversation || m.extendedTextMessage?.text || m.imageMessage?.caption || m.videoMessage?.caption || '';
 }
 
-async function postInbound(userId, remoteJid, fromMe, text) {
-    // exact shape backend/main.py receive_baileys expects
-    const payload = { user_id: userId, message: { key: { remoteJid, fromMe: !!fromMe }, message: { conversation: text || '' } } };
+async function postInbound(userId, remoteJid, fromMe, text, senderPn) {
+    // exact shape backend/main.py receive_baileys expects (+senderPn for LID unmasking)
+    const payload = { user_id: userId, message: { key: { remoteJid, fromMe: !!fromMe, senderPn: senderPn || '' }, message: { conversation: text || '' } } };
     try { await axios.post(BACKEND + '/webhook/baileys', payload, { timeout: 15000 }); }
     catch (e) { console.log(`[BAILEYS] webhook fail for ${userId}:`, e.message); }
 }
@@ -91,18 +91,21 @@ async function connectUser(userId) {
             const jid = msg.key?.remoteJid || '';
             if (!jid || jid === 'status@broadcast') continue;
             const fromMe = !!msg.key?.fromMe;
+            // LID mask fix: Baileys often addresses own/other contacts by LID.
+            // senderPn carries the real phone — forward it so backend can match people.
+            const senderPn = msg.key?.senderPn || '';
             const text = textOf(msg);
             const digits = jid.split('@')[0].split(':')[0];
             if (digits) st.jidCache[digits] = jid; // learn real JID (lid-safe)
             if (fromMe) {
                 console.log(`[BAILEYS] HUMAN TAKEOVER ${userId} on ${jid}`);
-                await postInbound(userId, jid, true, text);
+                await postInbound(userId, jid, true, text, senderPn);
                 continue;
             }
             if (!text) continue;
             const digitsOnly = digits.replace(/\D/g, '');
             console.log(`[BAILEYS] inbound ${userId} from ${digitsOnly}: ${text.slice(0, 80)}`);
-            await postInbound(userId, jid, false, text);
+            await postInbound(userId, jid, false, text, senderPn);
         }
     });
 }

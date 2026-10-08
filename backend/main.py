@@ -653,8 +653,13 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
         # Extract phone regardless of colon or @ domain.
         # NOTE: modern WhatsApp uses LIDs (long numbers) as JIDs; the contact's
         # real phone may differ. Match prospects by phone OR by stored JID.
+        # senderPn (forwarded by wa-service) unmasks LIDs to real phones.
         sender_phone_with_device = remote_jid.split("@")[0]
         sender_phone = sender_phone_with_device.split(":")[0]
+        _pn = "".join(filter(str.isdigit, (key.get("senderPn", "") or "").split("@")[0]))
+        if _pn and len(_pn) >= 10:
+            print(f"[LID-UNMASK] {sender_phone} -> +{_pn}")
+            sender_phone = _pn
 
         def _find_prospect(db, sender_phone, remote_jid, user_id):
             p = db.query(models.Prospect).filter(
