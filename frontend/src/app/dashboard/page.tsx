@@ -41,6 +41,10 @@ export default function DashboardPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [waConnected, setWaConnected] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [pairTab, setPairTab] = useState<"qr" | "code">("qr");
+  const [pairPhone, setPairPhone] = useState("");
+  const [pairCode, setPairCode] = useState("");
+  const [pairing, setPairing] = useState(false);
   const [meetings, setMeetings] = useState<any[]>([]);
   const [money, setMoney] = useState<any>(null);
   const [recovery, setRecovery] = useState<any[]>([]);
@@ -53,6 +57,7 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<any>({ business_name: "", industry: "", services: "", pricing: "", hours: "", location: "", avg_deal_inr: 5000 });
   const [templates, setTemplates] = useState<any[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [onboardHide, setOnboardHide] = useState(false);
   const toastShown = useRef<Set<number>>(new Set());
   const [lastUpdated, setLastUpdated] = useState<number>(0);
   const [nowTick, setNowTick] = useState<number>(Date.now());
@@ -301,7 +306,16 @@ export default function DashboardPage() {
 
   useEffect(() => { loadProfileEtc(); }, [user]);
 
+  useEffect(() => {
+    try { if (localStorage.getItem("dw_onboard_hide") === "1") setOnboardHide(true); } catch {}
+  }, []);
+
   useEffect(() => { if (user) loadProfileEtc(); }, [user]);
+
+  const dismissOnboard = () => {
+    try { localStorage.setItem("dw_onboard_hide", "1"); } catch {}
+    setOnboardHide(true);
+  };
 
   const saveProfile = async () => {
     if (!user) return;
@@ -384,13 +398,24 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
       {showQRModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#120044]/50">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#120044]/50 p-4">
             <div className="bg-white border border-[#e4e1f5] rounded-lg p-8 max-w-sm w-full flex flex-col items-center">
                 <div className="w-12 h-12 bg-[#ecfdf5] rounded-full flex items-center justify-center mb-3">
                     <Smartphone className="w-6 h-6 text-emerald-600" />
                 </div>
                 <h3 className="text-lg font-bold text-[#120044] mb-1">Connect WhatsApp</h3>
-                <p className="text-sm text-[#4c4480] text-center mb-5">Scan with your WhatsApp mobile app to link this sender.</p>
+                <p className="text-sm text-[#4c4480] text-center mb-4">On a phone? Use code — no second device needed.</p>
+                <div className="flex bg-[#f6f5ff] rounded p-1 mb-4 w-full">
+                  {(["qr", "code"] as const).map((t) => (
+                    <button key={t} onClick={() => setPairTab(t)}
+                      className={`flex-1 text-xs font-bold py-1.5 rounded transition-all ${pairTab === t ? "bg-white shadow-sm text-[#120044]" : "text-[#4c4480]"}`}>
+                      {t === "qr" ? "Scan QR" : "Pairing code"}
+                    </button>
+                  ))}
+                </div>
+                {pairTab === "qr" ? (
+                <>
+                <p className="text-xs text-[#4c4480] text-center mb-3">Scan with your WhatsApp mobile app to link this sender.</p>
                 {qrCode ? (
                     <div className="bg-white p-3 rounded border border-[#e4e1f5]">
                         <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
@@ -399,6 +424,40 @@ export default function DashboardPage() {
                     <div className="w-48 h-48 bg-slate-100 rounded flex items-center justify-center">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
                     </div>
+                )}
+                </>
+                ) : (
+                <div className="w-full">
+                  <p className="text-xs text-[#4c4480] text-center mb-3">Enter YOUR WhatsApp number, get a code, type it in WhatsApp → Linked devices → <b>Link with phone number</b>.</p>
+                  <div className="flex gap-2">
+                    <input value={pairPhone} onChange={(e) => setPairPhone(e.target.value)} placeholder="919876543210"
+                      className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5951ff]" />
+                    <button disabled={pairing} onClick={async () => {
+                      if (!user) return;
+                      setPairing(true); setPairCode("");
+                      try {
+                        const res = await fetch(`${API_BASE}/api/whatsapp/pair`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ userId: user.uid, phone: pairPhone })
+                        });
+                        const json = await res.json().catch(() => ({}));
+                        if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
+                        else if (json.code) setPairCode(json.code);
+                        else throw new Error(json.error || `Server ${res.status}`);
+                      } catch (err: any) { alert(`Pairing failed: ${err?.message || err}`); }
+                      setPairing(false);
+                    }}
+                      className="bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 rounded">
+                      {pairing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get code"}
+                    </button>
+                  </div>
+                  {pairCode && (
+                    <div className="mt-3 bg-[#120044] rounded p-4 text-center">
+                      <p className="tnum text-3xl font-bold text-white tracking-[0.2em]">{pairCode}</p>
+                      <p className="text-[11px] text-white/60 mt-1">Type this in WhatsApp within a few minutes</p>
+                    </div>
+                  )}
+                </div>
                 )}
                 <button onClick={() => setShowQRModal(false)} className="mt-5 text-sm font-semibold text-[#4c4480] hover:text-[#120044]">
                     Cancel
@@ -427,6 +486,39 @@ export default function DashboardPage() {
             {waConnected ? 'WhatsApp Linked' : 'Link WhatsApp'}
         </button>
       </div>
+
+      {/* First-run onboarding */}
+      {!onboardHide && !loading && !waConnected && (data?.metrics.total_leads || 0) === 0 && !(profile?.business_name) && (
+        <section className="bg-gradient-to-r from-[#120044] via-[#2a1b69] to-[#120044] rounded-lg p-5 md:p-6 text-white relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#5951FF]/30 blur-[80px] pointer-events-none" />
+          <div className="flex items-start justify-between gap-4 relative">
+            <div>
+              <h2 className="text-base md:text-lg font-bold">Get live in 3 steps 👇</h2>
+              <p className="text-xs text-white/60 mt-1">Takes about 5 minutes. Then the AI works while you sleep.</p>
+            </div>
+            <button onClick={dismissOnboard} className="text-white/50 hover:text-white text-xs font-bold shrink-0">Skip ✕</button>
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3 mt-4 relative">
+            <button onClick={() => setShowQRModal(true)}
+              className="text-left bg-white/10 hover:bg-white/15 backdrop-blur border border-white/15 rounded p-4 transition-all">
+              <p className="tnum text-[11px] font-bold text-white/50">STEP 1</p>
+              <p className="text-sm font-bold mt-1">Link WhatsApp</p>
+              <p className="text-xs text-white/60 mt-1">Scan QR — or use pairing code below, best on phones.</p>
+            </button>
+            <a href="#business"
+              className="text-left bg-white/10 hover:bg-white/15 backdrop-blur border border-white/15 rounded p-4 transition-all block">
+              <p className="tnum text-[11px] font-bold text-white/50">STEP 2</p>
+              <p className="text-sm font-bold mt-1">Describe business</p>
+              <p className="text-xs text-white/60 mt-1">Name, services, prices — AI answers only from this.</p>
+            </a>
+            <div className="bg-white/10 backdrop-blur border border-white/15 rounded p-4">
+              <p className="tnum text-[11px] font-bold text-white/50">STEP 3</p>
+              <p className="text-sm font-bold mt-1">Launch campaign</p>
+              <p className="text-xs text-white/60 mt-1">Type “dentists in Chennai” above and hit Launch.</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Command Center */}
       <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
@@ -720,7 +812,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Business profile + industry templates */}
-      <section className="bg-white border border-[#e4e1f5] rounded-lg p-5 mt-6">
+      <section id="business" className="bg-white border border-[#e4e1f5] rounded-lg p-5 mt-6 scroll-mt-6">
         <h2 className="text-base font-bold text-[#120044]">Your business</h2>
         <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices.</p>
         <div className="flex flex-wrap gap-2 mt-3">

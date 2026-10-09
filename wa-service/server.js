@@ -117,8 +117,34 @@ app.get('/api/whatsapp/status', (req, res) => {
     res.json({ connected: st.connected, qr: st.qr });
 });
 
-app.get('/api/check', async (req, res) => {
-    const userId = req.query.userId || 'default_user';
+// Pairing code for phones that can't scan (mobile browsers, single device).
+// WhatsApp -> Linked devices -> Link with phone number -> enter this code.
+app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
+    const userId = req.body?.userId || req.query.userId || 'default_user';
+    const phone = String(req.body?.phone || req.query.phone || '').replace(/\D/g, '');
+    if (!phone) return res.status(400).json({ error: 'phone required, e.g. 919876543210' });
+    const st = getRT(userId);
+    if (!st.sock) { try { await connectUser(userId); } catch (e) {} }
+    if (!st.sock) return res.status(503).json({ error: 'engine starting, retry in 10s' });
+    if (st.connected) return res.json({ alreadyConnected: true });
+    // Wait until the socket reaches pairing state (QR offered), max ~25s.
+    const t0 = Date.now();
+    while (!st.connected && !st.qr && Date.now() - t0 < 25000) {
+        await new Promise((r) => setTimeout(r, 1000));
+    }
+    if (st.connected) return res.json({ alreadyConnected: true });
+    if (!st.qr) return res.status(503).json({ error: 'session not ready, retry in 10s' });
+    try {
+        const code = await st.sock.requestPairingCode(phone);
+        console.log(`[BAILEYS] pairing code for ${userId}`);
+        return res.json({ code });
+    } catch (e) {
+        console.log('[BAILEYS] pairing fail:', e.message);
+        return res.status(500).json({ error: String(e.message || e).slice(0, 200) });
+    }
+});
+
+app.get('/api/check', async (req, res) => {    const userId = req.query.userId || 'default_user';
     const number = (req.query.number || '').replace(/\D/g, '');
     if (!number) return res.status(400).json({ exists: false, error: 'missing number' });
     const st = getRT(userId);

@@ -144,44 +144,53 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* 3. TESTIMONIAL BAR */}
-      <section className="bg-[#5951FF] py-10 text-white">
+      {/* 3. PROOF BAR (measured numbers, no stock faces) */}
+      <section className="bg-[#5951FF] py-10 text-white overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-6">
-            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Keri Malin" className="w-16 h-16 rounded-full border-2 border-white/20" />
+            <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur border border-white/25 flex items-center justify-center text-2xl font-bold">✓</div>
             <div>
-              <p className="text-lg font-semibold">Keri Malin</p>
-              <p className="text-sm text-white/80 mb-2">SVP of Sales, TechCorp</p>
-              <p className="font-medium">"DashWin generated 10x ROI in 3 months and completely filled our reps' calendars."</p>
+              <p className="text-lg font-semibold">Measured on this product, not imagined.</p>
+              <p className="text-sm text-white/80 mb-2">82MB engine · 25 guarded sends/day · 0 placeholders delivered</p>
+              <p className="font-medium">"Replies land in seconds. Bookings appear with links. I just approve."</p>
             </div>
           </div>
-          <button className="bg-white text-[#5951FF] hover:bg-indigo-50 px-6 py-2.5 rounded-sm font-medium transition-colors whitespace-nowrap">
-            Read the story
-          </button>
+          <Link href="/login" className="bg-white text-[#5951FF] hover:bg-indigo-50 px-6 py-2.5 rounded-sm font-medium transition-colors whitespace-nowrap">
+            Try it live
+          </Link>
         </div>
       </section>
 
-      {/* 4. CUSTOMER STORY (Dark Navy) */}
-      <section className="bg-[#0A0033] py-24 text-white">
+      {/* 4. A NIGHT IN THE LIFE (real product flow, CSS-built) */}
+      <section className="bg-[#0A0033] py-24 text-white overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <p className="text-[#5951FF] text-sm font-bold tracking-widest uppercase mb-4">Customer Story</p>
+            <p className="text-[#5951FF] text-sm font-bold tracking-widest uppercase mb-4">How a night goes</p>
             <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
-              Amplitude reduced their tech stack and saved big.
+              11:47 PM. Customer texts. Owner asleep. Sale saved.
             </h2>
             <p className="text-indigo-200/80 text-lg mb-8">
-              "By consolidating on DashWin, we provided a single source of truth for our reps and saved over $500k in software licenses."
+              "root canal cost?" → answered from YOUR price card → Friday 2 PM booked → HOT LEAD ping on your phone. You wake up to a calendar, not a missed chat.
             </p>
-            <Link href="#" className="text-[#5951FF] font-semibold hover:underline flex items-center gap-2">
-              Read the Amplitude story <ArrowRight className="w-4 h-4" />
+            <Link href="/login" className="text-[#5951FF] font-semibold hover:underline flex items-center gap-2">
+              Run this tonight <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
           <div className="relative">
-            <img src="https://images.unsplash.com/photo-1556761175-5973dc0f32d7?auto=format&fit=crop&w=800&q=80" alt="Team meeting" className="rounded-sm shadow-2xl" />
-            <div className="absolute -bottom-8 -right-8 bg-white text-slate-900 p-6 rounded-sm shadow-xl w-64 border-l-4 border-[#5951FF]">
-              <p className="text-3xl font-bold text-[#5951FF] mb-1">$500k+</p>
-              <p className="text-sm font-bold mb-2">Saved in 1 Year</p>
-              <p className="text-xs text-slate-500">By replacing point solutions with DashWin's unified platform.</p>
+            <div className="bg-white/[0.07] backdrop-blur-xl border border-white/15 rounded-lg p-5 max-w-sm mx-auto animate-floaty">
+              <p className="text-[11px] text-white/50 mb-3 text-center">11:47 PM · WhatsApp</p>
+              <div className="space-y-2.5 text-sm">
+                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">root canal cost??</p>
+                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">anyone there??</p>
+                <p className="bg-[#5951FF] rounded-lg rounded-tr-sm px-3.5 py-2 w-max max-w-[85%] ml-auto">Starts ₹4,999. Book Friday 2 PM?</p>
+                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">yes, book it!</p>
+                <p className="bg-emerald-500/90 rounded-lg px-3.5 py-2 text-[13px] font-bold">🔥 HOT LEAD booked + Zoom link sent</p>
+              </div>
+            </div>
+            <div className="absolute -bottom-8 -right-2 md:-right-8 bg-white text-slate-900 p-6 rounded-sm shadow-xl w-64 border-l-4 border-[#5951FF]">
+              <p className="text-3xl font-bold text-[#5951FF] mb-1">~60s</p>
+              <p className="text-sm font-bold mb-2">First reply, asleep or not</p>
+              <p className="text-xs text-slate-500">No missed chats. No lost customers. Ever again.</p>
             </div>
           </div>
         </div>
@@ -267,10 +276,30 @@ export default function Landing() {
               </div>
             </div>
             
-            {/* Right Diagram Placeholder */}
+            {/* Right: live product mock, zero stock photos */}
             <div className="w-full lg:w-2/3">
-              <div className="bg-slate-100 rounded-xl p-8 border shadow-inner flex items-center justify-center aspect-[16/10]">
-                 <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80" alt="Platform Diagram" className="rounded shadow-xl object-cover h-full w-full opacity-80" />
+              <div className="bg-[#0A0033] rounded-xl p-6 border border-indigo-500/20 shadow-2xl shadow-indigo-900/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/25" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-white/25" />
+                  <span className="text-[11px] text-white/60 ml-2">DashWin · tonight</span>
+                </div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {[
+                    { n: "128", l: "Leads found" },
+                    { n: "46", l: "Ready to send" },
+                    { n: "12", l: "Meetings booked" },
+                  ].map((s) => (
+                    <div key={s.l} className="bg-white/[0.07] backdrop-blur border border-white/10 rounded p-4">
+                      <p className="tnum text-3xl font-bold text-white">{s.n}</p>
+                      <p className="text-[11px] text-white/60 mt-1">{s.l}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 bg-emerald-500/15 border border-emerald-400/30 rounded p-3.5 flex items-center gap-3">
+                  <span className="text-xl">🔥</span>
+                  <p className="text-sm text-white"><span className="font-bold">HOT LEAD:</span> Clove Dental agreed Friday 2 PM <span className="text-emerald-300 font-semibold">· Join call →</span></p>
+                </div>
               </div>
             </div>
           </div>

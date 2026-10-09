@@ -157,6 +157,22 @@ def wa_status_proxy(userId: str = "default_user"):
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
 
+
+class PairRequest(BaseModel):
+    userId: str = "default_user"
+    phone: str = ""
+
+
+@app.post("/api/whatsapp/pair")
+def wa_pair_proxy(request: PairRequest):
+    """Pairing-code login for phones that can't scan QR (mobile browsers)."""
+    try:
+        r = _rq.post(f"{_WA_LOCAL}/api/whatsapp/pair",
+                     json={"userId": request.userId, "phone": request.phone}, timeout=30)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
+
 class ClientLogRequest(BaseModel):
     where: str = ""
     message: str = ""
