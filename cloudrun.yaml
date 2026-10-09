@@ -1,0 +1,28 @@
+# DashWin backend on Cloud Run — applied with:
+#   gcloud run services replace cloudrun.yaml --region asia-south1
+# Secrets are NEVER in this file. Set them in console or via:
+#   gcloud run services update dashwin --region asia-south1 \
+#     --set-env-vars DATABASE_URL=...,TAVILY_API_KEY=...,GROQ_API_KEY=...,GROQ_MODEL=...,MEET_PROVIDER=...,ZOOM_ACCOUNT_ID=...,ZOOM_CLIENT_ID=...,ZOOM_CLIENT_SECRET=...
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: dashwin
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"   # test mode; use "1" + cpu always-on for production WA
+        run.googleapis.com/timeout: "3600s"
+    spec:
+      containerConcurrency: 50
+      containers:
+        - image: gcr.io/PROJECT_ID/dashwin:latest   # <-- replace PROJECT_ID (or use Artifact Registry URL)
+          ports:
+            - containerPort: 8000
+          env:
+            - name: PORT
+              value: "8000"
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
