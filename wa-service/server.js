@@ -46,8 +46,17 @@ async function connectUser(userId) {
     const dir = path.join(AUTH_ROOT, userId);
     fs.mkdirSync(dir, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(dir);
-    let version = undefined;
-    try { version = (await fetchLatestBaileysVersion()).version; } catch (e) { console.log('[BAILEYS] version fetch fail, using bundled'); }
+    // Fetch WA version once per process (not per connect) — saves seconds on every reconnect.
+    if (!global._waVersion) {
+        try {
+            const v = await Promise.race([
+                fetchLatestBaileysVersion(),
+                new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 4000)),
+            ]);
+            global._waVersion = v.version;
+        } catch (e) { console.log('[BAILEYS] version fetch fail, using bundled'); }
+    }
+    const version = global._waVersion;
     const sock = makeWASocket({
         auth: state,
         version,
