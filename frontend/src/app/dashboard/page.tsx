@@ -428,22 +428,28 @@ export default function DashboardPage() {
                 </>
                 ) : (
                 <div className="w-full">
-                  <p className="text-xs text-[#4c4480] text-center mb-3">Enter YOUR WhatsApp number, get a code, type it in WhatsApp → Linked devices → <b>Link with phone number</b>.</p>
+                  <p className="text-xs text-[#4c4480] text-center mb-3">Enter YOUR WhatsApp number <b>with country code</b> (no + or spaces), get a code, type it in WhatsApp → Linked devices → <b>Link with phone number</b>.</p>
+                  <p className="text-[11px] text-[#a099b4] text-center mb-3">India 91 → <b>919876543210</b> · UAE 971 → <b>971501234567</b> · Saudi 966 → <b>966551234567</b> · US 1 → <b>12025550134</b></p>
               <div className="flex flex-wrap gap-2">
-                    <input value={pairPhone} onChange={(e) => setPairPhone(e.target.value)} placeholder="919876543210"
+                    <input value={pairPhone} onChange={(e) => setPairPhone(e.target.value)} placeholder="919876543210" inputMode="tel" autoComplete="tel"
                       className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#2E4BFF]" />
                     <button disabled={pairing} onClick={async () => {
                       if (!user) return;
                       setPairing(true); setPairCode("");
                       try {
+                        const digits = pairPhone.replace(/\D/g, "");
+                        if (digits.length < 10 || digits.length > 15)
+                          throw new Error("Use the full number WITH country code, digits only — e.g. 919876543210 (India), 971501234567 (UAE), 966551234567 (Saudi).");
                         const res = await fetch(`${API_BASE}/api/whatsapp/pair`, {
                           method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ userId: user.uid, phone: pairPhone })
+                          body: JSON.stringify({ userId: user.uid, phone: digits })
                         });
                         const json = await res.json().catch(() => ({}));
                         if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
                         else if (json.code) setPairCode(json.code);
-                        else throw new Error(json.error || `Server ${res.status}`);
+                        else if (res.status === 404) throw new Error("Pairing isn't live on the server yet (outdated backend). Use Scan-QR for now — or redeploy the backend, then retry.");
+                        else if (res.status === 503) throw new Error("WhatsApp engine is starting. Wait ~10s and retry.");
+                        else throw new Error(json.error || json.detail || `Server ${res.status}`);
                       } catch (err: any) { alert(`Pairing failed: ${err?.message || err}`); }
                       setPairing(false);
                     }}
