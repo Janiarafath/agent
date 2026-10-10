@@ -471,7 +471,9 @@ export default function DashboardPage() {
                         if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
                         else if (json.code) { setPairCode(json.code); setPairFor(json.phone || digits); setPairNote(""); }
                         else if (res.status === 404) throw new Error("Pairing isn't live on the server yet (outdated backend). Use Scan-QR for now — or redeploy the backend, then retry.");
+                        else if (res.status === 429) throw new Error("A code request is already running — wait 30 seconds, tap Get code ONCE, and let it finish. Tapping twice kills the first try.");
                         else if (res.status === 503) throw new Error("WhatsApp engine is starting. Wait ~10s and retry.");
+                        else if ((json.error || "").includes("Connection Closed")) throw new Error("Link dropped mid-request. Tap Get code ONCE and wait a full minute without tapping again.");
                         else throw new Error(json.error || json.detail || `Server ${res.status}`);
                       } catch (err: any) { alert(`Pairing failed: ${err?.message || err}`); }
                       setPairing(false); setPairNote("");
@@ -482,6 +484,7 @@ export default function DashboardPage() {
                   </div>
                   {pairNote && <p className="text-[11px] font-semibold text-[#2E4BFF] mt-2 text-center">{pairNote}</p>}
                   <button
+                    disabled={pairing}
                     onClick={async () => {
                       if (!user) return;
                       if (!confirm("Reset the WhatsApp session and get a fresh code? Use this if codes keep failing. Any existing link on this sender will need re-linking.")) return;
