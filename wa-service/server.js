@@ -143,8 +143,18 @@ app.get('/api/whatsapp/status', (req, res) => {
 app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     const userId = req.body?.userId || req.query.userId || 'default_user';
     const phone = String(req.body?.phone || req.query.phone || '').replace(/\D/g, '');
+    const fresh = req.body?.fresh === true || req.query.fresh === '1';
     if (phone.length < 10 || phone.length > 15) return res.status(400).json({ error: 'phone must be 10-15 digits WITH country code, e.g. 919876543210' });
     const st = getRT(userId);
+    if (st.connected && !fresh) return res.json({ alreadyConnected: true });
+    // "Reset session" path: poisoned keys (repeated 401s) can never pair —
+    // wipe the auth dir so the next socket registers brand-new keys.
+    if (fresh) {
+        try { if (st.sock) { st.sock.ev.removeAllListeners(); st.sock.end(); } } catch (e) {}
+        st.sock = null; st.qr = null; st.connected = false;
+        try { fs.rmSync(path.join(AUTH_ROOT, userId), { recursive: true, force: true }); } catch (e) {}
+        console.log(`[BAILEYS] session reset for ${userId}`);
+    }
     // Fresh socket per code request: a stale/half-dead socket issues codes the
     // phone then rejects. Rebuild, wait for pairing state, then request.
     try { await connectUser(userId); } catch (e) {}
@@ -158,8 +168,25 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     if (st.connected) return res.json({ alreadyConnected: true });
     if (!st.qr) return res.status(503).json({ error: 'session not ready, retry in 10s' });
     st.pairing = true;
+    const waitReady = async () => {
+        const t1 = Date.now();
+        while (!st.connected && !st.qr && Date.now() - t1 < 25000) {
+            await new Promise((r) => setTimeout(r, 1000));
+        }
+    };
     try {
-        const code = await st.sock.requestPairingCode(phone);
+        let code;
+        try {
+            code = await st.sock.requestPairingCode(phone);
+        } catch (e) {
+            // Socket died mid-request (throttled CPU / blip): rebuild once and retry.
+            console.log('[BAILEYS] pairing retry after:', e.message);
+            try { await connectUser(userId); } catch (_) {}
+            if (!st.sock) throw e;
+            await waitReady();
+            if (st.connected) return res.json({ alreadyConnected: true });
+            code = await st.sock.requestPairingCode(phone);
+        }
         console.log(`[BAILEYS] pairing code for ${userId} (${phone})`);
         return res.json({ code, phone });
     } catch (e) {

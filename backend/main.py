@@ -161,6 +161,7 @@ def wa_status_proxy(userId: str = "default_user"):
 class PairRequest(BaseModel):
     userId: str = "default_user"
     phone: str = ""
+    fresh: bool = False
 
 
 @app.post("/api/whatsapp/pair")
@@ -174,7 +175,7 @@ def wa_pair_proxy(request: PairRequest):
         raise HTTPException(status_code=422, detail="phone must be 10-15 digits WITH country code, e.g. 919876543210")
     try:
         r = _rq.post(f"{_WA_LOCAL}/api/whatsapp/pair",
-                     json={"userId": request.userId, "phone": digits}, timeout=60)
+                     json={"userId": request.userId, "phone": digits, "fresh": request.fresh}, timeout=120)
         try:
             return r.json()
         except Exception:
