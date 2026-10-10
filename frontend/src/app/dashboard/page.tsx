@@ -353,9 +353,9 @@ export default function DashboardPage() {
   if (!user && !loading) {
     return (
       <div className="max-w-xl mx-auto px-6 py-24 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-[#120044]">Sign in to open your dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-[#0B0B14]">Sign in to open your dashboard</h1>
         <p className="text-sm text-[#4c4480] mt-2">Your pipeline lives behind your account.</p>
-        <Link href="/login" className="ui-press inline-block mt-6 bg-[#5951ff] hover:bg-[#4640e0] text-white font-semibold px-6 py-2.5 rounded text-sm">
+        <Link href="/login" className="ui-press inline-block mt-6 bg-[#2E4BFF] hover:bg-[#1D33D6] text-white font-semibold px-6 py-2.5 rounded text-sm">
           Go to sign in
         </Link>
       </div>
@@ -365,7 +365,7 @@ export default function DashboardPage() {
   if (loading) return (
     <div className="h-full flex items-center justify-center py-24">
         <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-[#5951ff]" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#2E4BFF]" />
             <p className="text-xs font-semibold uppercase tracking-widest text-[#4c4480]">Loading DashWin…</p>
         </div>
     </div>
@@ -398,17 +398,17 @@ export default function DashboardPage() {
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
 
       {showQRModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#120044]/50 p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0B14]/50 p-4">
             <div className="bg-white border border-[#e4e1f5] rounded-lg p-8 max-w-sm w-full flex flex-col items-center">
                 <div className="w-12 h-12 bg-[#ecfdf5] rounded-full flex items-center justify-center mb-3">
                     <Smartphone className="w-6 h-6 text-emerald-600" />
                 </div>
-                <h3 className="text-lg font-bold text-[#120044] mb-1">Connect WhatsApp</h3>
+                <h3 className="text-lg font-bold text-[#0B0B14] mb-1">Connect WhatsApp</h3>
                 <p className="text-sm text-[#4c4480] text-center mb-4">On a phone? Use code — no second device needed.</p>
                 <div className="flex bg-[#f6f5ff] rounded p-1 mb-4 w-full">
                   {(["qr", "code"] as const).map((t) => (
                     <button key={t} onClick={() => setPairTab(t)}
-                      className={`flex-1 text-xs font-bold py-1.5 rounded transition-all ${pairTab === t ? "bg-white shadow-sm text-[#120044]" : "text-[#4c4480]"}`}>
+                      className={`flex-1 text-xs font-bold py-1.5 rounded transition-all ${pairTab === t ? "bg-white shadow-sm text-[#0B0B14]" : "text-[#4c4480]"}`}>
                       {t === "qr" ? "Scan QR" : "Pairing code"}
                     </button>
                   ))}
@@ -429,9 +429,9 @@ export default function DashboardPage() {
                 ) : (
                 <div className="w-full">
                   <p className="text-xs text-[#4c4480] text-center mb-3">Enter YOUR WhatsApp number, get a code, type it in WhatsApp → Linked devices → <b>Link with phone number</b>.</p>
-                  <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                     <input value={pairPhone} onChange={(e) => setPairPhone(e.target.value)} placeholder="919876543210"
-                      className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#5951ff]" />
+                      className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#2E4BFF]" />
                     <button disabled={pairing} onClick={async () => {
                       if (!user) return;
                       setPairing(true); setPairCode("");
@@ -447,19 +447,19 @@ export default function DashboardPage() {
                       } catch (err: any) { alert(`Pairing failed: ${err?.message || err}`); }
                       setPairing(false);
                     }}
-                      className="bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 rounded">
+                      className="bg-[#2E4BFF] hover:bg-[#1D33D6] disabled:opacity-50 text-white text-xs font-bold px-4 rounded">
                       {pairing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get code"}
                     </button>
                   </div>
                   {pairCode && (
-                    <div className="mt-3 bg-[#120044] rounded p-4 text-center">
+                    <div className="mt-3 bg-[#0B0B14] rounded p-4 text-center">
                       <p className="tnum text-3xl font-bold text-white tracking-[0.2em]">{pairCode}</p>
                       <p className="text-[11px] text-white/60 mt-1">Type this in WhatsApp within a few minutes</p>
                     </div>
                   )}
                 </div>
                 )}
-                <button onClick={() => setShowQRModal(false)} className="mt-5 text-sm font-semibold text-[#4c4480] hover:text-[#120044]">
+                <button onClick={() => setShowQRModal(false)} className="mt-5 text-sm font-semibold text-[#4c4480] hover:text-[#0B0B14]">
                     Cancel
                 </button>
             </div>
@@ -469,7 +469,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-[#120044]">Pipeline Overview</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[#0B0B14]">Pipeline Overview</h1>
             <p className="text-sm text-[#4c4480] mt-0.5 flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60"></span>
@@ -480,7 +480,7 @@ export default function DashboardPage() {
         </div>
         <button
             onClick={() => !waConnected && setShowQRModal(true)}
-            className={`ui-press flex items-center gap-2 px-4 py-2 rounded border text-sm font-semibold ${waConnected ? 'border-emerald-200 bg-[#ecfdf5] text-emerald-700 cursor-default' : 'border-[#e4e1f5] bg-white hover:border-[#5951ff] text-[#120044]'}`}
+            className={`ui-press flex items-center gap-2 px-4 py-2 rounded border text-sm font-semibold ${waConnected ? 'border-emerald-200 bg-[#ecfdf5] text-emerald-700 cursor-default' : 'border-[#e4e1f5] bg-white hover:border-[#2E4BFF] text-[#0B0B14]'}`}
         >
             <Link2 className="w-4 h-4" />
             {waConnected ? 'WhatsApp Linked' : 'Link WhatsApp'}
@@ -489,8 +489,8 @@ export default function DashboardPage() {
 
       {/* First-run onboarding */}
       {!onboardHide && !loading && !waConnected && (data?.metrics.total_leads || 0) === 0 && !(profile?.business_name) && (
-        <section className="bg-gradient-to-r from-[#120044] via-[#2a1b69] to-[#120044] rounded-lg p-5 md:p-6 text-white relative overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#5951FF]/30 blur-[80px] pointer-events-none" />
+        <section className="bg-gradient-to-r from-[#0B0B14] via-[#2a1b69] to-[#0B0B14] rounded-lg p-5 md:p-6 text-white relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#2E4BFF]/30 blur-[80px] pointer-events-none" />
           <div className="flex items-start justify-between gap-4 relative">
             <div>
               <h2 className="text-base md:text-lg font-bold">Get live in 3 steps 👇</h2>
@@ -526,10 +526,10 @@ export default function DashboardPage() {
               <div className="flex-[2] w-full">
                   <label className="text-xs font-semibold text-[#4c4480] uppercase tracking-wider mb-2 block">Find leads</label>
                   <div className="relative">
-                      <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#5951ff]" />
+                      <Terminal className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#2E4BFF]" />
                       <input type="text" placeholder="E.g. dentists in Chennai…"
                           value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                          className="w-full bg-white border border-[#e4e1f5] rounded py-2.5 pl-11 pr-4 text-sm text-[#120044] placeholder:text-[#a099b4] focus:outline-none focus:border-[#5951ff] focus:ring-2 focus:ring-[#5951ff]/20" />
+                          className="w-full bg-white border border-[#e4e1f5] rounded py-2.5 pl-11 pr-4 text-sm text-[#0B0B14] placeholder:text-[#a099b4] focus:outline-none focus:border-[#2E4BFF] focus:ring-2 focus:ring-[#2E4BFF]/20" />
                   </div>
               </div>
               <div className="flex-1 w-full">
@@ -538,22 +538,22 @@ export default function DashboardPage() {
                       <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-600" />
                       <input type="text" placeholder="919876543210"
                           value={bossPhone} onChange={(e) => setBossPhone(e.target.value)}
-                          className="w-full bg-white border border-[#e4e1f5] rounded py-2.5 pl-11 pr-4 text-sm text-[#120044] placeholder:text-[#a099b4] focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
+                          className="w-full bg-white border border-[#e4e1f5] rounded py-2.5 pl-11 pr-4 text-sm text-[#0B0B14] placeholder:text-[#a099b4] focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20" />
                   </div>
               </div>
               <div className="flex gap-2">
                   <button onClick={saveBossPhone} disabled={savingBoss} title="Save boss alerts number"
-                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#120044] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
                       {savingBoss ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                       Alerts
                   </button>
                   <button onClick={triggerFollowups} disabled={isFollowup}
-                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#120044] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
                       {isFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4 text-[#a099b4]" />}
                       Follow-ups
                   </button>
                   <button onClick={triggerDiscovery} disabled={isTriggering}
-                      className="ui-press h-[42px] px-5 rounded bg-[#5951ff] text-white text-sm font-semibold hover:bg-[#4640e0] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-[42px] px-5 rounded bg-[#2E4BFF] text-white text-sm font-semibold hover:bg-[#1D33D6] disabled:opacity-50 flex items-center gap-2">
                       {isTriggering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       Launch
                   </button>
@@ -562,12 +562,12 @@ export default function DashboardPage() {
       </section>
 
       {/* Money left on the table */}
-      <section className="bg-[#120044] rounded-lg px-6 py-5 text-white">
+      <section className="bg-[#0B0B14] rounded-lg px-6 py-5 text-white">
           <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Est. pipeline</p>
                   {money && money.estimated_pipeline_inr != null ? (
-                    <p className="tnum text-3xl font-bold mt-1 bg-gradient-to-r from-white via-indigo-200 to-[#8b85ff] bg-clip-text text-transparent">₹{(money.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
+                    <p className="tnum text-3xl font-bold mt-1 bg-gradient-to-r from-white via-indigo-200 to-[#8B93FF] bg-clip-text text-transparent">₹{(money.estimated_pipeline_inr || 0).toLocaleString("en-IN")}</p>
                   ) : (
                     <p className="text-sm font-bold mt-2 text-amber-300">Set your avg deal in Business below ↓</p>
                   )}
@@ -596,7 +596,7 @@ export default function DashboardPage() {
                   <p className="tnum text-3xl font-bold mt-1">{money?.hours_saved ?? 0}h</p>
               </div>
               <button onClick={triggerRecovery} disabled={recovering}
-                  className="ui-press ml-auto bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded flex items-center gap-2">
+                  className="ui-press ml-auto bg-[#2E4BFF] hover:bg-[#1D33D6] disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded flex items-center gap-2">
                   {recovering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   Recover Lost Leads
               </button>
@@ -606,9 +606,9 @@ export default function DashboardPage() {
 
       {/* Live job progress */}
       {job && (job.status === "queued" || job.status === "running") && (
-        <div className="bg-[#efedff] border border-[#5951ff]/30 rounded-lg px-5 py-3 flex items-center gap-3 text-sm">
-            <Loader2 className="w-4 h-4 animate-spin text-[#5951ff] shrink-0" />
-            <p className="text-[#120044]">
+        <div className="bg-[#efedff] border border-[#2E4BFF]/30 rounded-lg px-5 py-3 flex items-center gap-3 text-sm">
+            <Loader2 className="w-4 h-4 animate-spin text-[#2E4BFF] shrink-0" />
+            <p className="text-[#0B0B14]">
               <span className="font-bold capitalize">{job.stage || job.status}</span>
               {job.total ? <span className="tnum text-[#4c4480]"> — {job.done || 0}/{job.total}</span> : null}
               <span className="text-[#4c4480]"> — Tavily is searching, then numbers get verified. No need to wait here.</span>
@@ -620,7 +620,7 @@ export default function DashboardPage() {
       {recovery.length > 0 && (
       <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-[#120044]">Recovery queue</h2>
+          <h2 className="text-base font-bold text-[#0B0B14]">Recovery queue</h2>
           <span className="tnum text-xs font-bold text-[#4c4480]">{recovery.length} waiting</span>
         </div>
         <div className="divide-y divide-[#f1eefb] mt-2">
@@ -628,15 +628,15 @@ export default function DashboardPage() {
             <div key={r.id} className="py-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded ${r.temp === "HOT" ? "bg-red-100 text-red-700" : r.temp === "WARM" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{r.temp}</span>
-                <p className="text-sm font-bold text-[#120044]">{r.company}</p>
+                <p className="text-sm font-bold text-[#0B0B14]">{r.company}</p>
                 <p className="text-xs text-[#4c4480]">{r.reason} · {r.next_action}</p>
               </div>
               {editingId === r.id ? (
                 <div className="mt-2">
                   <textarea value={editText} onChange={(e) => setEditText(e.target.value)} rows={2}
-                    className="w-full bg-white border border-[#e4e1f5] rounded p-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" />
+                    className="w-full bg-white border border-[#e4e1f5] rounded p-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" />
                   <div className="flex gap-2 mt-2">
-                    <button onClick={() => saveRecoveryEdit(r.id)} className="ui-press bg-[#5951ff] text-white text-xs font-bold px-4 py-1.5 rounded">Save</button>
+                    <button onClick={() => saveRecoveryEdit(r.id)} className="ui-press bg-[#2E4BFF] text-white text-xs font-bold px-4 py-1.5 rounded">Save</button>
                     <button onClick={() => setEditingId(null)} className="ui-press border border-[#e4e1f5] text-xs font-bold px-4 py-1.5 rounded">Cancel</button>
                   </div>
                 </div>
@@ -652,7 +652,7 @@ export default function DashboardPage() {
                   <button onClick={() => { setEditingId(r.id); setEditText(r.draft); }}
                     className="ui-press border border-[#e4e1f5] text-xs font-bold px-4 py-1.5 rounded">Edit</button>
                   <button onClick={() => skipRecovery(r.id)}
-                    className="ui-press text-[#a099b4] hover:text-[#120044] text-xs font-bold px-2 py-1.5">Skip</button>
+                    className="ui-press text-[#a099b4] hover:text-[#0B0B14] text-xs font-bold px-2 py-1.5">Skip</button>
                 </div>
               )}
             </div>
@@ -665,7 +665,7 @@ export default function DashboardPage() {
       <div className="grid lg:grid-cols-3 gap-6 items-start">
         <section className="lg:col-span-2 bg-white border border-[#e4e1f5] rounded-lg overflow-hidden">
           <div className="px-5 pt-4">
-            <h2 className="text-base font-bold text-[#120044]">Revenue journey</h2>
+            <h2 className="text-base font-bold text-[#0B0B14]">Revenue journey</h2>
           </div>
           {/* Horizontal stages */}
           <div className="flex items-stretch px-5 pt-3 overflow-x-auto">
@@ -674,10 +674,10 @@ export default function DashboardPage() {
               const n = stageCount(s.key);
               return (
                 <button key={s.key} onClick={() => setActiveStage(s.key)}
-                  className={`ui-press flex-1 min-w-[110px] text-left px-3 py-2.5 border-b-2 ${active ? "border-[#5951ff]" : "border-transparent hover:border-[#e4e1f5]"}`}>
+                  className={`ui-press flex-1 min-w-[110px] text-left px-3 py-2.5 border-b-2 ${active ? "border-[#2E4BFF]" : "border-transparent hover:border-[#e4e1f5]"}`}>
                   <span className="tnum text-[10px] font-bold text-[#a099b4]">0{i + 1}</span>
-                  <span className={`block text-sm font-bold ${active ? "text-[#120044]" : "text-[#4c4480]"}`}>{s.title}</span>
-                  <span className={`tnum text-xs font-bold ${active ? "text-[#5951ff]" : "text-[#a099b4]"}`}>{n}</span>
+                  <span className={`block text-sm font-bold ${active ? "text-[#0B0B14]" : "text-[#4c4480]"}`}>{s.title}</span>
+                  <span className={`tnum text-xs font-bold ${active ? "text-[#2E4BFF]" : "text-[#a099b4]"}`}>{n}</span>
                 </button>
               );
             })}
@@ -691,7 +691,7 @@ export default function DashboardPage() {
               {stageLeads.map((p) => (
                 <div key={p.id} className="grid md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 px-5 py-3 items-center">
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-sm font-bold text-[#120044] truncate">{p.company_name}</p>
+                    <p className="text-sm font-bold text-[#0B0B14] truncate">{p.company_name}</p>
                     {p.ai_muted && <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />}
                   </div>
                   <p className="text-[11px] font-medium text-[#a099b4] truncate">{p.business_signals?.source || "SYSTEM"}</p>
@@ -706,7 +706,7 @@ export default function DashboardPage() {
                             <span className="text-[10px] font-bold text-[#a099b4]">unverified</span>
                           )}
                           <button onClick={() => approveOutreach(p.id)} disabled={approvingId === p.id}
-                            className="ui-press bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
+                            className="ui-press bg-[#2E4BFF] hover:bg-[#1D33D6] disabled:opacity-50 text-white text-xs font-bold px-4 py-1.5 rounded">
                             {approvingId === p.id ? "Sending…" : "Approve"}
                           </button>
                         </span>
@@ -732,7 +732,7 @@ export default function DashboardPage() {
 
         {/* Right rail: meetings + activity */}
         <aside className="space-y-6">
-          <section className="bg-[#120044] rounded-lg p-5 text-white">
+          <section className="bg-[#0B0B14] rounded-lg p-5 text-white">
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4" />
               <h2 className="text-sm font-bold">Meetings booked</h2>
@@ -747,7 +747,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold">{m.company}</p>
                     <p className="text-xs text-white/60 mt-0.5">{m.time}</p>
                     {m.interest && <p className="text-xs text-emerald-300 mt-0.5">{m.interest}</p>}
-                    <a href={m.link} target="_blank" rel="noreferrer" className="ui-press inline-block mt-2 bg-white text-[#120044] text-xs font-bold px-3 py-1.5 rounded">
+                    <a href={m.link} target="_blank" rel="noreferrer" className="ui-press inline-block mt-2 bg-white text-[#0B0B14] text-xs font-bold px-3 py-1.5 rounded">
                       Join call
                     </a>
                     {m.status !== "DONE" && (
@@ -767,8 +767,8 @@ export default function DashboardPage() {
 
           <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-[#5951ff]" />
-              <h2 className="text-sm font-bold text-[#120044]">Agent status</h2>
+              <Activity className="w-4 h-4 text-[#2E4BFF]" />
+              <h2 className="text-sm font-bold text-[#0B0B14]">Agent status</h2>
             </div>
             <div className="mt-3 space-y-2.5 text-sm">
               <div className="flex items-center justify-between">
@@ -777,15 +777,15 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#4c4480] flex items-center gap-2"><Send className="w-3.5 h-3.5" /> Outreach</span>
-                <span className="tnum text-xs font-bold text-[#120044]">{data?.metrics.outreach_ready || 0} ready</span>
+                <span className="tnum text-xs font-bold text-[#0B0B14]">{data?.metrics.outreach_ready || 0} ready</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#4c4480] flex items-center gap-2"><Search className="w-3.5 h-3.5" /> Discovery</span>
-                <span className="text-xs font-bold text-[#120044]">Autonomous</span>
+                <span className="text-xs font-bold text-[#0B0B14]">Autonomous</span>
               </div>
             </div>
             {!waConnected && (
-              <button onClick={() => setShowQRModal(true)} className="ui-press mt-4 w-full border border-[#5951ff] text-[#5951ff] hover:bg-[#efedff] text-xs font-bold py-2 rounded">
+              <button onClick={() => setShowQRModal(true)} className="ui-press mt-4 w-full border border-[#2E4BFF] text-[#2E4BFF] hover:bg-[#efedff] text-xs font-bold py-2 rounded">
                 Link WhatsApp
               </button>
             )}
@@ -793,12 +793,12 @@ export default function DashboardPage() {
 
           {muted.length > 0 && (
           <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
-            <h2 className="text-sm font-bold text-[#120044]">AI paused chats</h2>
+            <h2 className="text-sm font-bold text-[#0B0B14]">AI paused chats</h2>
             <p className="text-xs text-[#4c4480] mt-1">You took over — resume when ready.</p>
             <div className="mt-3 space-y-2">
               {muted.map((m: any) => (
                 <div key={m.sender_phone} className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-bold text-[#120044] truncate">{m.company}</p>
+                  <p className="text-xs font-bold text-[#0B0B14] truncate">{m.company}</p>
                   <button onClick={() => resumeChat(m.sender_phone)}
                     className="ui-press shrink-0 border border-emerald-500 text-emerald-700 hover:bg-[#ecfdf5] text-[11px] font-bold px-3 py-1 rounded">
                     Resume AI
@@ -813,13 +813,13 @@ export default function DashboardPage() {
 
       {/* Business profile + industry templates */}
       <section id="business" className="bg-white border border-[#e4e1f5] rounded-lg p-5 mt-6 scroll-mt-6">
-        <h2 className="text-base font-bold text-[#120044]">Your business</h2>
+        <h2 className="text-base font-bold text-[#0B0B14]">Your business</h2>
         <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices.</p>
         <div className="flex flex-wrap gap-2 mt-3">
           <span className="text-xs font-bold text-[#4c4480] self-center">Start from:</span>
           {(templates.length ? templates : [{ id: "dental", label: "Dental clinic" }, { id: "salon", label: "Salon & spa" }, { id: "real_estate", label: "Real estate" }, { id: "coaching", label: "Coaching" }, { id: "restaurant", label: "Restaurant" }]).map((t: any) => (
             <button key={t.id} onClick={() => applyTemplate(t.id)}
-              className="ui-press border border-[#e4e1f5] hover:border-[#5951ff] hover:text-[#5951ff] text-xs font-bold px-3 py-1.5 rounded">
+              className="ui-press border border-[#e4e1f5] hover:border-[#2E4BFF] hover:text-[#2E4BFF] text-xs font-bold px-3 py-1.5 rounded">
               {t.label}
             </button>
           ))}
@@ -827,22 +827,22 @@ export default function DashboardPage() {
         <div className="grid md:grid-cols-3 gap-3 mt-4">
           <label className="block text-xs font-semibold text-[#4c4480]">Business name
             <input value={profile.business_name || ""} onChange={(e) => setProfile({ ...profile, business_name: e.target.value })}
-              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
           <label className="block text-xs font-semibold text-[#4c4480]">Hours
             <input value={profile.hours || ""} onChange={(e) => setProfile({ ...profile, hours: e.target.value })} placeholder="Mon-Sat 10am-8pm"
-              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
           <label className="block text-xs font-semibold text-[#4c4480]">Avg deal (₹, for pipeline math)
             <input value={profile.avg_deal_inr || 5000} onChange={(e) => setProfile({ ...profile, avg_deal_inr: e.target.value })}
-              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+              className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
         </div>
         <label className="block text-xs font-semibold text-[#4c4480] mt-3">Services (one per line)
           <textarea value={profile.services || ""} onChange={(e) => setProfile({ ...profile, services: e.target.value })} rows={3}
-            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
         <label className="block text-xs font-semibold text-[#4c4480] mt-3">Pricing (leave empty = AI never quotes)
           <textarea value={profile.pricing || ""} onChange={(e) => setProfile({ ...profile, pricing: e.target.value })} rows={2}
-            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#120044] focus:outline-none focus:border-[#5951ff]" /></label>
+            className="mt-1 w-full bg-white border border-[#e4e1f5] rounded px-3 py-2 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
         <button onClick={saveProfile} disabled={savingProfile}
-          className="ui-press mt-4 bg-[#5951ff] hover:bg-[#4640e0] disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded flex items-center gap-2">
+          className="ui-press mt-4 bg-[#2E4BFF] hover:bg-[#1D33D6] disabled:opacity-50 text-white text-sm font-bold px-5 py-2 rounded flex items-center gap-2">
           {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
           Save business
         </button>
@@ -853,7 +853,7 @@ export default function DashboardPage() {
           DashWin finds public business contacts, verifies WhatsApp, and drafts outreach for your approval.
       </footer>
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-[#120044] text-white text-sm font-semibold px-5 py-3 rounded flex items-center gap-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] bg-[#0B0B14] text-white text-sm font-semibold px-5 py-3 rounded flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {toast}
         </div>
       )}

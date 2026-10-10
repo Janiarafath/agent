@@ -1,442 +1,418 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { DashWinLogo } from "@/components/Logo";
-import { ArrowRight, Play, Check, Search, ShieldCheck, Zap, Mail, Calendar, TrendingUp, Users, Activity, Lock, Database, Globe, ChevronRight, ChevronLeft, MessageSquare } from "lucide-react";
+import {
+  ArrowRight, Play, Search, ShieldCheck, MessageSquare, Calendar,
+  Stethoscope, Scissors, Home, Wrench, GraduationCap, UtensilsCrossed,
+  Check, Moon, Ban, Menu, X, Zap, Clock, Rocket,
+} from "lucide-react";
 
 const rise = {
   hidden: { opacity: 0, y: 28 },
-  show: (i: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: i * 0.1, ease: "easeOut" as const } }),
+  show: (i: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.55, delay: i * 0.08, ease: "easeOut" as const } }),
 };
 
-export default function Landing() {
+const BLUE = "#2E4BFF";
+
+function HeroPhone() {
+  const msgs = [
+    { id: "h1", me: false, text: "Root canal cost?", delay: "0.4s" },
+    { id: "h2", me: false, text: "Anyone there??", delay: "1.6s" },
+    { id: "h3", me: true, text: "Starts ₹4,999. Book Friday 2 PM?", delay: "3.2s" },
+    { id: "h4", me: false, text: "Yes, book it!", delay: "5s" },
+    { id: "h5", me: true, text: "🔥 Booked + Zoom link sent", delay: "6.4s", hot: true },
+  ];
   return (
-    <div className="font-sans text-slate-900 selection:bg-indigo-200">
-      
+    <div className="bg-[#101018] border border-white/15 rounded-[2rem] p-5 w-full max-w-sm mx-auto shadow-2xl shadow-blue-900/40">
+      <p className="text-[11px] text-white/50 mb-3 text-center font-semibold">11:47 PM · WhatsApp · you are asleep</p>
+      <div className="space-y-2.5 text-sm min-h-[300px]">
+        {msgs.map((m) => (
+          <p
+            key={m.id}
+            className={`chat-msg px-3.5 py-2.5 w-max max-w-[88%] font-medium ${
+              m.hot
+                ? "bg-emerald-500 text-white font-bold rounded-xl ml-auto text-[13px]"
+                : m.me
+                  ? "rounded-xl rounded-tr-sm ml-auto text-white"
+                  : "bg-white/10 text-white rounded-xl rounded-tl-sm"
+            }`}
+            style={{ animationDelay: m.delay, ...(m.me && !m.hot ? { background: BLUE } : {}) }}
+          >
+            {m.text}
+          </p>
+        ))}
+      </div>
+      <p className="text-[11px] text-white/40 mt-3 text-center">Live demo loop · real DashWin flow</p>
+    </div>
+  );
+}
+
+const TABS = [
+  {
+    id: "find", label: "Find leads", icon: Search,
+    title: "Type who you want. DashWin finds them.",
+    desc: "“Dentists in Chennai” → real businesses with real numbers, pulled from maps and the open web. No CSVs, no scraping tools, no manual lists.",
+    stat: "128", statLabel: "leads from one search",
+  },
+  {
+    id: "verify", label: "Verify", icon: ShieldCheck,
+    title: "Every number checked before a word goes out.",
+    desc: "Dead numbers are dropped silently. You only ever pay attention to people who can actually receive your message.",
+    stat: "100%", statLabel: "of sends to live numbers",
+  },
+  {
+    id: "reply", label: "AI replies", icon: MessageSquare,
+    title: "Answers from YOUR price card. Never invents.",
+    desc: "You set services and prices once. The AI replies in seconds, only from what you wrote. Empty price = it never quotes.",
+    stat: "~60s", statLabel: "first reply, day or night",
+  },
+  {
+    id: "book", label: "Books", icon: Calendar,
+    title: "Hot leads get a meeting link. You get a ping.",
+    desc: "When someone says yes, DashWin books a Zoom slot and pings your phone. You wake up to a calendar, not a missed chat.",
+    stat: "24/7", statLabel: "booking while you sleep",
+  },
+];
+
+const BIZ = [
+  { icon: Stethoscope, label: "Dental clinics" },
+  { icon: Scissors, label: "Salons & spas" },
+  { icon: Home, label: "Real estate" },
+  { icon: Wrench, label: "Repair shops" },
+  { icon: GraduationCap, label: "Coaching" },
+  { icon: UtensilsCrossed, label: "Restaurants" },
+];
+
+export default function Landing() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [tab, setTab] = useState("find");
+  const active = TABS.find((t) => t.id === tab)!;
+
+  return (
+    <div className="font-sans text-slate-900 selection:bg-blue-200 bg-white">
+
       {/* NAVBAR */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#05001A]/70 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between text-white">
-          <Link href="/">
-            <DashWinLogo dark />
+      <header className="fixed top-0 left-0 right-0 z-50 bg-black/70 backdrop-blur-xl border-b border-white/10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between text-white">
+          <Link href="/" aria-label="DashWin home">
+            <DashWinLogo dark size={30} />
           </Link>
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
-            <Link href="#" className="hover:text-indigo-200 transition-colors">Platform</Link>
-            <Link href="#" className="hover:text-indigo-200 transition-colors">Solutions</Link>
-            <Link href="#" className="hover:text-indigo-200 transition-colors">Customers</Link>
-            <Link href="#" className="hover:text-indigo-200 transition-colors">Resources</Link>
-            <Link href="/pricing" className="hover:text-indigo-200 transition-colors">Pricing</Link>
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-white/80">
+            <Link href="#how" className="hover:text-white transition-colors">How it works</Link>
+            <Link href="#example" className="hover:text-white transition-colors">Live example</Link>
+            <Link href="#safety" className="hover:text-white transition-colors">Safety</Link>
+            <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
           </nav>
-          <div className="flex items-center gap-6 text-sm font-medium">
-            <Link href="/login" className="hover:text-indigo-200 transition-colors hidden sm:block">Sign in</Link>
-            <Link href="/login" className="bg-[#5951FF] hover:bg-indigo-600 px-6 py-2.5 rounded-sm transition-colors">
-              Get a demo
+          <div className="hidden sm:flex items-center gap-5 text-sm font-medium">
+            <Link href="/login" className="text-white/80 hover:text-white transition-colors">Sign in</Link>
+            <Link href="/login" className="font-semibold px-5 py-2.5 rounded-lg transition-colors" style={{ background: BLUE }}>
+              Start free
             </Link>
           </div>
+          <button
+            className="sm:hidden p-2 -mr-2 text-white"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menu"
+          >
+            {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+        {menuOpen && (
+          <div className="sm:hidden bg-black border-t border-white/10 px-4 py-4 space-y-1 text-white">
+            {[["How it works", "#how"], ["Live example", "#example"], ["Safety", "#safety"], ["Pricing", "/pricing"], ["Sign in", "/login"]].map(([label, href]) => (
+              <Link key={href + label} href={href} onClick={() => setMenuOpen(false)} className="block py-2.5 text-sm font-medium text-white/85">
+                {label}
+              </Link>
+            ))}
+            <Link href="/login" onClick={() => setMenuOpen(false)} className="block text-center font-semibold px-5 py-3 rounded-lg mt-2" style={{ background: BLUE }}>
+              Start free
+            </Link>
+          </div>
+        )}
       </header>
 
-      {/* 1. HERO SECTION */}
-      <section className="hero-outreach w-full pt-40 pb-32 relative text-center text-white border-b-4 border-indigo-500/20 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full bg-[#5951FF]/30 blur-[130px] animate-drift-a pointer-events-none" />
-        <div className="absolute -bottom-40 -right-24 w-[520px] h-[520px] rounded-full bg-fuchsia-500/20 blur-[140px] animate-drift-b pointer-events-none" />
-        <div className="max-w-4xl mx-auto px-6 relative z-10">
-          <motion.p variants={rise} initial="hidden" whileInView="show" viewport={{ once: true }}
-            className="text-xs font-bold tracking-[0.2em] text-amber-200/90 uppercase mb-6">
-            Agentic AI for Revenue Teams
-          </motion.p>
-          <motion.h1 variants={rise} initial="hidden" whileInView="show" custom={1} viewport={{ once: true }}
-            className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-            You didn&apos;t hire enough sellers.{" "}
-            <span className="bg-gradient-to-r from-[#8b85ff] via-[#5951FF] to-[#22d3ee] bg-clip-text text-transparent">Now you don&apos;t have to.</span>
-          </motion.h1>
-          <motion.p variants={rise} initial="hidden" whileInView="show" custom={2} viewport={{ once: true }}
-            className="text-lg md:text-xl text-indigo-100/80 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Automate pipeline generation, draft hyper-personalized outreach, and manage your deals with DashWin&apos;s AI-native revenue platform.
-          </motion.p>
-          <motion.div variants={rise} initial="hidden" whileInView="show" custom={3} viewport={{ once: true }}
-            className="flex flex-wrap items-center justify-center gap-4 mb-12">
-            <Link href="/login" className="bg-gradient-to-r from-[#6d64ff] to-[#5951FF] hover:from-[#5951FF] hover:to-[#4640e0] px-8 py-3.5 rounded-sm font-medium transition-all shadow-lg shadow-indigo-600/40">
-              Get a demo
-            </Link>
-            <Link href="#tour" className="border border-white/30 bg-white/5 backdrop-blur-md hover:bg-white/10 px-8 py-3.5 rounded-sm font-medium transition-colors">
-              Take a product tour
-            </Link>
+      {/* HERO */}
+      <section className="bg-[#050505] text-white pt-28 md:pt-40 pb-16 md:pb-24 relative overflow-hidden">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full blur-[140px] pointer-events-none" style={{ background: `${BLUE}33` }} />
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+          <div className="text-center lg:text-left">
+            <motion.p variants={rise} initial="hidden" animate="show"
+              className="inline-flex items-center gap-2 text-[11px] md:text-xs font-bold tracking-[0.18em] uppercase border border-white/15 bg-white/5 rounded-full px-4 py-2 mb-6 text-white/80">
+              <Zap className="w-3.5 h-3.5" style={{ color: BLUE }} /> WhatsApp AI · for local business
+            </motion.p>
+            <motion.h1 variants={rise} initial="hidden" animate="show" custom={1}
+              className="text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight leading-[1.08] mb-5">
+              Missed chats are costing you sales.{" "}
+              <span className="bg-gradient-to-r from-[#7A8FFF] via-[#2E4BFF] to-[#22d3ee] bg-clip-text text-transparent">
+                DashWin answers every one.
+              </span>
+            </motion.h1>
+            <motion.p variants={rise} initial="hidden" animate="show" custom={2}
+              className="text-base md:text-lg text-white/65 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              DashWin finds leads, replies on WhatsApp in seconds, follows up, and books
+              meetings into your calendar — while you run your shop.
+            </motion.p>
+            <motion.div variants={rise} initial="hidden" animate="show" custom={3}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 mb-8">
+              <Link href="/login" className="font-semibold px-8 py-3.5 rounded-lg text-center transition-opacity hover:opacity-90" style={{ background: BLUE }}>
+                Start free
+              </Link>
+              <Link href="#watch" className="border border-white/25 bg-white/5 hover:bg-white/10 px-8 py-3.5 rounded-lg font-semibold text-center transition-colors inline-flex items-center justify-center gap-2">
+                <Play className="w-4 h-4" /> Watch 1-min video
+              </Link>
+            </motion.div>
+            <motion.div variants={rise} initial="hidden" animate="show" custom={4}
+              className="flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 text-[13px] text-white/55 font-medium">
+              <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> No sales team needed</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> You approve every send</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> Works while you sleep</span>
+            </motion.div>
+          </div>
+          <motion.div variants={rise} initial="hidden" animate="show" custom={2} className="relative">
+            <HeroPhone />
+            <div className="mt-4 md:absolute md:-left-6 md:top-8 bg-white text-slate-900 rounded-xl shadow-xl px-4 py-3 flex items-center gap-3 md:max-w-[220px]">
+              <span className="text-2xl">🔥</span>
+              <p className="text-xs font-bold leading-snug">HOT LEAD booked + Zoom link sent to your phone</p>
+            </div>
+            <div className="mt-3 md:absolute md:-right-2 md:bottom-10 text-white rounded-xl px-4 py-3 md:max-w-[200px]" style={{ background: BLUE }}>
+              <p className="text-2xl font-bold">~60s</p>
+              <p className="text-xs font-semibold opacity-90">First reply, asleep or not</p>
+            </div>
           </motion.div>
-          {/* Floating live-proof chips */}
-          <motion.div variants={rise} initial="hidden" whileInView="show" custom={4} viewport={{ once: true }}
-            className="flex flex-wrap justify-center gap-3 mb-14">
-            <div className="animate-floaty bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2.5 text-sm font-semibold">
-              🔥 HOT LEAD booked + Zoom link sent
-            </div>
-            <div className="animate-floaty bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ animationDelay: "1.5s" }}>
-              ✓ Friday 2 PM · Clove Dental
-            </div>
-            <div className="animate-floaty bg-white/10 backdrop-blur-xl border border-white/20 rounded-lg px-4 py-2.5 text-sm font-semibold" style={{ animationDelay: "3s" }}>
-              82MB · zero browser
-            </div>
-          </motion.div>
-          <p className="text-sm font-medium text-indigo-200/60 uppercase tracking-wider">
-            Trusted by 6,000+ Top Revenue Teams Worldwide
-          </p>
         </div>
       </section>
 
-      {/* 1b. CUSTOMER MARQUEE */}
-      <div className="bg-white border-b overflow-hidden py-5">
-        <div className="flex whitespace-nowrap animate-marquee gap-14 text-lg font-bold text-slate-400 w-max">
-          {["Dental clinics", "Salons & spas", "Real estate", "Repair shops", "Coaching centers", "Restaurants", "Dental clinics", "Salons & spas", "Real estate", "Repair shops", "Coaching centers", "Restaurants"].map((c, i) => (
-            <span key={i} className="flex items-center gap-14">{c} <span className="text-[#5951FF]">✦</span></span>
-          ))}
+      {/* WHO IT'S FOR */}
+      <section className="bg-white border-b py-10 md:py-12">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+          <p className="text-center text-xs font-bold tracking-[0.18em] text-slate-400 uppercase mb-6">
+            Built for businesses like yours
+          </p>
+          <div className="flex flex-wrap justify-center gap-2.5 md:gap-3">
+            {BIZ.map((b) => (
+              <div key={b.label} className="flex items-center gap-2 border border-slate-200 rounded-full px-4 py-2 text-sm font-semibold text-slate-600">
+                <b.icon className="w-4 h-4" style={{ color: BLUE }} />
+                {b.label}
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-7 text-sm font-bold text-slate-900">
+            <span><span className="tnum" style={{ color: BLUE }}>25/day</span> <span className="font-medium text-slate-500">guarded sends</span></span>
+            <span><span className="tnum" style={{ color: BLUE }}>~60s</span> <span className="font-medium text-slate-500">first reply</span></span>
+            <span><span className="tnum" style={{ color: BLUE }}>0</span> <span className="font-medium text-slate-500">placeholders ever sent</span></span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* 2. INNOVATION HIGHLIGHTS */}
-      <section className="py-24 bg-white">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-16 text-[#05001A]">New Agentic AI Innovation Highlights</h2>
-          
-          {/* Tabs */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {[
-              { icon: <Search className="w-5 h-5" />, label: "Discover Leads", active: true },
-              { icon: <Mail className="w-5 h-5" />, label: "Smart Draft" },
-              { icon: <Check className="w-5 h-5" />, label: "Verify Numbers" },
-              { icon: <MessageSquare className="w-5 h-5" />, label: "WhatsApp AI" },
-              { icon: <Activity className="w-5 h-5" />, label: "Pipeline Sync" },
-              { icon: <Calendar className="w-5 h-5" />, label: "Auto-Booking" }
-            ].map((tab, i) => (
-              <button key={i} className={`flex flex-col items-center justify-center w-28 h-24 rounded-lg border-2 transition-all ${tab.active ? 'border-[#5951FF] bg-[#5951FF]/5 text-[#5951FF]' : 'border-transparent text-slate-500 hover:bg-slate-50'}`}>
-                <div className={`mb-2 p-2 rounded-md ${tab.active ? 'bg-[#5951FF] text-white' : 'bg-slate-100'}`}>
-                  {tab.icon}
-                </div>
-                <span className="text-xs font-semibold">{tab.label}</span>
+      {/* WHAT IT DOES — working tabs */}
+      <section className="py-16 md:py-24 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3 text-slate-900">One helper. The whole job.</h2>
+          <p className="text-center text-slate-500 mb-10 md:mb-14">Tap each step to see what DashWin does.</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-3 mb-8">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`flex items-center gap-2.5 rounded-xl border-2 px-3.5 py-3 text-left transition-all ${
+                  tab === t.id ? "bg-blue-50/60" : "border-transparent hover:bg-slate-50"
+                }`}
+                style={tab === t.id ? { borderColor: BLUE } : {}}
+              >
+                <span className="p-2 rounded-lg text-white shrink-0" style={{ background: tab === t.id ? BLUE : "#cbd5e1" }}>
+                  <t.icon className="w-4 h-4" />
+                </span>
+                <span className={`text-sm font-bold ${tab === t.id ? "text-slate-900" : "text-slate-500"}`}>{t.label}</span>
               </button>
             ))}
           </div>
-
-          {/* Content Area */}
-          <div className="flex flex-col lg:flex-row items-center gap-12 bg-slate-50 border rounded-2xl p-8">
-            <div className="w-full lg:w-3/5">
-              <div className="aspect-video bg-[#0A0033] rounded-xl shadow-2xl shadow-indigo-900/30 border border-indigo-500/20 p-1.5 relative overflow-hidden group">
-                <video className="w-full h-full object-cover rounded-lg" controls preload="none" poster="/dashwin-poster.jpg" src="/dashwin-launch.mp4" />
-                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1.5 rounded-full border border-white/20">
-                  ▶ Launch cut · 0:20
-                </div>
-              </div>
+          <div key={active.id} className="grid md:grid-cols-2 gap-6 items-stretch bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-10">
+            <div className="flex flex-col justify-center">
+              <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3">{active.title}</h3>
+              <p className="text-slate-600 leading-relaxed mb-6">{active.desc}</p>
+              <Link href="/login" className="inline-flex items-center gap-2 font-bold text-sm w-max" style={{ color: BLUE }}>
+                Try it on your business <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
-            <div className="w-full lg:w-2/5 space-y-6">
-              <h3 className="text-2xl font-bold text-[#05001A]">DashWin ICP</h3>
-              <p className="text-slate-600 leading-relaxed">
-                Define your perfect customer and let DashWin's Agentic AI find them across the web. Automatically verify their WhatsApp numbers and draft hyper-personalized sequences to maximize engagement.
-              </p>
-              <button className="bg-[#5951FF] hover:bg-indigo-600 text-white px-6 py-2.5 rounded-sm font-medium transition-colors">
-                Read the release notes
-              </button>
+            <div className="rounded-xl text-white p-8 flex flex-col items-center justify-center text-center min-h-[220px]" style={{ background: "#0B0B14" }}>
+              <p className="tnum text-6xl font-bold" style={{ color: "#7A8FFF" }}>{active.stat}</p>
+              <p className="text-white/60 font-medium mt-2">{active.statLabel}</p>
+              <active.icon className="w-8 h-8 mt-5 text-white/30" />
             </div>
-          </div>
-          
-          <div className="text-center mt-12">
-            <Link href="#" className="text-[#5951FF] font-semibold hover:underline">
-              See all DashWin Agentic AI capabilities →
-            </Link>
           </div>
         </div>
       </section>
 
-      {/* 3. PROOF BAR (measured numbers, no stock faces) */}
-      <section className="bg-[#5951FF] py-10 text-white overflow-hidden">
-        <div className="max-w-[1400px] mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-full bg-white/15 backdrop-blur border border-white/25 flex items-center justify-center text-2xl font-bold">✓</div>
-            <div>
-              <p className="text-lg font-semibold">Measured on this product, not imagined.</p>
-              <p className="text-sm text-white/80 mb-2">82MB engine · 25 guarded sends/day · 0 placeholders delivered</p>
-              <p className="font-medium">"Replies land in seconds. Bookings appear with links. I just approve."</p>
-            </div>
-          </div>
-          <Link href="/login" className="bg-white text-[#5951FF] hover:bg-indigo-50 px-6 py-2.5 rounded-sm font-medium transition-colors whitespace-nowrap">
-            Try it live
-          </Link>
-        </div>
-      </section>
-
-      {/* 4. A NIGHT IN THE LIFE (real product flow, CSS-built) */}
-      <section className="bg-[#0A0033] py-24 text-white overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
+      {/* LIVE EXAMPLE */}
+      <section id="example" className="bg-[#050505] py-16 md:py-24 text-white scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
-            <p className="text-[#5951FF] text-sm font-bold tracking-widest uppercase mb-4">How a night goes</p>
-            <h2 className="text-4xl md:text-5xl font-bold leading-tight mb-6">
+            <p className="text-xs font-bold tracking-[0.18em] uppercase mb-4" style={{ color: "#7A8FFF" }}>A real night with DashWin</p>
+            <h2 className="text-3xl md:text-5xl font-bold leading-tight mb-5">
               11:47 PM. Customer texts. Owner asleep. Sale saved.
             </h2>
-            <p className="text-indigo-200/80 text-lg mb-8">
-              "root canal cost?" → answered from YOUR price card → Friday 2 PM booked → HOT LEAD ping on your phone. You wake up to a calendar, not a missed chat.
+            <p className="text-white/60 text-base md:text-lg mb-7 leading-relaxed">
+              “Root canal cost?” → answered from <em className="text-white not-italic font-semibold">your</em> price
+              card → Friday 2 PM booked → HOT LEAD ping on your phone. You wake up to a calendar, not a missed chat.
             </p>
-            <Link href="/login" className="text-[#5951FF] font-semibold hover:underline flex items-center gap-2">
+            <Link href="/login" className="font-bold inline-flex items-center gap-2" style={{ color: "#7A8FFF" }}>
               Run this tonight <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="relative">
-            <div className="bg-white/[0.07] backdrop-blur-xl border border-white/15 rounded-lg p-5 max-w-sm mx-auto animate-floaty">
-              <p className="text-[11px] text-white/50 mb-3 text-center">11:47 PM · WhatsApp</p>
+          <div>
+            <div className="bg-white/[0.07] border border-white/15 rounded-2xl p-5 max-w-sm mx-auto">
+              <p className="text-[11px] text-white/50 mb-3 text-center font-semibold">11:47 PM · WhatsApp</p>
               <div className="space-y-2.5 text-sm">
-                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">root canal cost??</p>
-                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">anyone there??</p>
-                <p className="bg-[#5951FF] rounded-lg rounded-tr-sm px-3.5 py-2 w-max max-w-[85%] ml-auto">Starts ₹4,999. Book Friday 2 PM?</p>
-                <p className="bg-white/10 rounded-lg rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">yes, book it!</p>
-                <p className="bg-emerald-500/90 rounded-lg px-3.5 py-2 text-[13px] font-bold">🔥 HOT LEAD booked + Zoom link sent</p>
+                <p className="bg-white/10 rounded-xl rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">root canal cost??</p>
+                <p className="bg-white/10 rounded-xl rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">anyone there??</p>
+                <p className="rounded-xl rounded-tr-sm px-3.5 py-2 w-max max-w-[85%] ml-auto text-white font-medium" style={{ background: BLUE }}>Starts ₹4,999. Book Friday 2 PM?</p>
+                <p className="bg-white/10 rounded-xl rounded-tl-sm px-3.5 py-2 w-max max-w-[85%]">yes, book it!</p>
+                <p className="bg-emerald-500 rounded-xl px-3.5 py-2 text-[13px] font-bold text-white">🔥 HOT LEAD booked + Zoom link sent</p>
               </div>
             </div>
-            <div className="absolute -bottom-8 -right-2 md:-right-8 bg-white text-slate-900 p-6 rounded-sm shadow-xl w-64 border-l-4 border-[#5951FF]">
-              <p className="text-3xl font-bold text-[#5951FF] mb-1">~60s</p>
-              <p className="text-sm font-bold mb-2">First reply, asleep or not</p>
-              <p className="text-xs text-slate-500">No missed chats. No lost customers. Ever again.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. G2 CAROUSEL (Darker Navy) */}
-      <section className="bg-[#03001C] py-24 text-center border-t border-white/5">
-        <div className="max-w-4xl mx-auto px-6 relative">
-          <div className="mb-8 flex justify-center">
-            <div className="bg-orange-500 text-white font-bold text-2xl px-4 py-1 rounded">G2</div>
-          </div>
-          <button className="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#5951FF] flex items-center justify-center rounded hover:bg-indigo-600 transition-colors">
-            <ChevronLeft className="w-6 h-6 text-white" />
-          </button>
-          <button className="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#5951FF] flex items-center justify-center rounded hover:bg-indigo-600 transition-colors">
-            <ChevronRight className="w-6 h-6 text-white" />
-          </button>
-          
-          <div className="px-16">
-            <p className="text-2xl md:text-3xl font-medium text-white mb-8 leading-snug">
-              "If you want to be effective... you use DashWin to manage the entire pipeline from finding leads to booking meetings."
-            </p>
-            <p className="text-sm text-white/60 mb-1">Director of Sales</p>
-            <p className="text-xs text-white/40 mb-6">Mid-Market Company</p>
-            <Link href="#" className="text-[#5951FF] text-sm font-semibold hover:underline">
-              Read the full report
-            </Link>
-          </div>
-          
-          <div className="flex justify-center gap-2 mt-12">
-            <div className="w-2 h-2 rounded-full bg-[#5951FF]"></div>
-            <div className="w-2 h-2 rounded-full bg-white/20"></div>
-            <div className="w-2 h-2 rounded-full bg-white/20"></div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. CTA BANNER */}
-      <section className="bg-[#05001A] py-16 text-center border-b border-white/10">
-         <p className="text-lg text-white font-medium mb-1">after your sellers are out of the building on Friday, DashWin keeps working. <span className="text-[#5951FF]">Generate pipeline 24/7.</span></p>
-         <div className="flex justify-center gap-4 mt-6">
-            <button className="bg-[#5951FF] hover:bg-indigo-600 text-white px-6 py-2.5 rounded-sm font-medium transition-colors">Start for free</button>
-            <button className="bg-transparent border border-white/30 text-white hover:bg-white/10 px-6 py-2.5 rounded-sm font-medium transition-colors">Get a demo</button>
-         </div>
-      </section>
-
-      {/* 7. CAPABILITIES / PLATFORM DIAGRAM */}
-      <section className="py-24 bg-white">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#05001A] mb-4">One agentic AI platform for revenue teams.</h2>
-            <p className="text-lg text-slate-600">Upgrade from manual execution to AI agent execution.</p>
-          </div>
-          
-          <div className="flex flex-col lg:flex-row gap-16 items-center">
-            {/* Left list */}
-            <div className="w-full lg:w-1/3 space-y-4">
-              <div className="p-5 border-l-4 border-[#5951FF] bg-slate-50 shadow-sm rounded-r-md">
-                <div className="flex items-center gap-3 font-bold text-[#05001A] mb-2">
-                  <div className="w-6 h-6 rounded bg-[#5951FF] text-white flex items-center justify-center text-xs">1</div>
-                  Automated Pipeline Generation
-                </div>
-                <p className="text-sm text-slate-600 ml-9">Find exact ICP matches across the web and verify their contact details instantly.</p>
-              </div>
-              {[
-                { n: 2, title: "Contextual AI Outreach" },
-                { n: 3, title: "WhatsApp AI Agent" },
-                { n: 4, title: "Smart Meeting Booker" },
-                { n: 5, title: "Full CRM Synchronization" },
-                { n: 6, title: "Revenue Analytics" }
-              ].map(item => (
-                <div key={item.n} className="p-5 border-l-4 border-transparent hover:bg-slate-50 transition-colors cursor-pointer rounded-r-md">
-                  <div className="flex items-center gap-3 font-semibold text-slate-500 hover:text-[#05001A]">
-                    <div className="w-6 h-6 rounded border-2 border-slate-300 flex items-center justify-center text-xs">{item.n}</div>
-                    {item.title}
-                  </div>
-                </div>
-              ))}
-              <div className="pt-4 pl-9">
-                <button className="bg-[#5951FF] hover:bg-indigo-600 text-white px-6 py-2.5 rounded-sm font-medium transition-colors w-full sm:w-auto">
-                  Explore the platform
-                </button>
-              </div>
-            </div>
-            
-            {/* Right: live product mock, zero stock photos */}
-            <div className="w-full lg:w-2/3">
-              <div className="bg-[#0A0033] rounded-xl p-6 border border-indigo-500/20 shadow-2xl shadow-indigo-900/30">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/25" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-white/25" />
-                  <span className="text-[11px] text-white/60 ml-2">DashWin · tonight</span>
-                </div>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  {[
-                    { n: "128", l: "Leads found" },
-                    { n: "46", l: "Ready to send" },
-                    { n: "12", l: "Meetings booked" },
-                  ].map((s) => (
-                    <div key={s.l} className="bg-white/[0.07] backdrop-blur border border-white/10 rounded p-4">
-                      <p className="tnum text-3xl font-bold text-white">{s.n}</p>
-                      <p className="text-[11px] text-white/60 mt-1">{s.l}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 bg-emerald-500/15 border border-emerald-400/30 rounded p-3.5 flex items-center gap-3">
-                  <span className="text-xl">🔥</span>
-                  <p className="text-sm text-white"><span className="font-bold">HOT LEAD:</span> Clove Dental agreed Friday 2 PM <span className="text-emerald-300 font-semibold">· Join call →</span></p>
-                </div>
-              </div>
+            <div className="max-w-sm mx-auto mt-4 bg-white text-slate-900 p-5 rounded-xl border-l-4" style={{ borderColor: BLUE }}>
+              <p className="text-3xl font-bold" style={{ color: BLUE }}>~60s</p>
+              <p className="text-sm font-bold">First reply, asleep or not</p>
+              <p className="text-xs text-slate-500 mt-1">No missed chats. No lost customers.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 7b. WATCH IT WORK */}
-      <section className="py-24 bg-white border-t">
-        <div className="max-w-[1200px] mx-auto px-6 grid md:grid-cols-5 gap-10 items-center bg-[#120044] rounded-sm p-8 md:p-12">
-          <div className="md:col-span-2">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#5951FF]">Launch cut · 0:20</p>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-white mt-2">Watch a customer get won while the owner sleeps.</h2>
-            <p className="text-white/70 mt-3 leading-relaxed">Real product flow: late-night question, instant grounded answer, Friday booking, HOT LEAD ping.</p>
-            <Link href="/login" className="inline-flex items-center gap-2 mt-6 bg-[#5951FF] hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-sm text-sm">
-              Try it live <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="md:col-span-3">
-            <video className="w-full rounded-sm border border-white/15" controls preload="none" poster="/dashwin-poster.jpg" src="/dashwin-launch.mp4" />
-          </div>
-        </div>
-      </section>
-
-      {/* 8. TRUST 3 CARDS */}
-      <section className="py-24 bg-[#F8F9FA] border-t">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center text-[#05001A] mb-16">A Trusted Sales Platform</h2>
-          
-          <div className="grid md:grid-cols-3 gap-8">
+      {/* HOW IT WORKS */}
+      <section id="how" className="py-16 md:py-24 bg-slate-50 scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">Live in three steps.</h2>
+          <p className="text-center text-slate-500 mb-10 md:mb-14">About five minutes of setup. Then it works while you sleep.</p>
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
             {[
-              { title: "Security", desc: "DashWin operates with SOC 2 Type II compliance and robust data encryption at every level.", icon: <ShieldCheck className="w-8 h-8 text-[#5951FF]" /> },
-              { title: "Reliability", desc: "Built on enterprise-grade infrastructure with 99.99% guaranteed uptime for global teams.", icon: <Globe className="w-8 h-8 text-[#5951FF]" /> },
-              { title: "Data Privacy", desc: "Full GDPR and CCPA compliance. Your proprietary sales data is never used to train global models.", icon: <Database className="w-8 h-8 text-[#5951FF]" /> }
-            ].map((card, i) => (
-              <div key={i} className="group bg-white/80 backdrop-blur rounded-lg p-8 shadow-sm border border-slate-100 hover:border-[#5951FF]/40 hover:shadow-xl hover:shadow-indigo-600/10 hover:-translate-y-1 transition-all duration-200 flex flex-col h-full">
-                <div className="bg-indigo-50 w-24 h-24 rounded-2xl flex items-center justify-center mb-8 self-center">
-                  {card.icon}
+              { n: "1", t: "Launch a search", d: "Type who you want — “salons in Kochi”. DashWin finds real businesses and checks every number.", icon: Search },
+              { n: "2", t: "Approve the drafts", d: "The AI writes each first message from your services and prices. Nothing sends without your tap.", icon: Check },
+              { n: "3", t: "Wake up to bookings", d: "Replies, follow-ups and meeting links happen on their own. Hot leads ping your phone.", icon: Rocket },
+            ].map((s) => (
+              <div key={s.n} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-9 h-9 rounded-lg text-white font-bold flex items-center justify-center" style={{ background: BLUE }}>{s.n}</span>
+                  <s.icon className="w-5 h-5 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-bold text-[#05001A] mb-4">{card.title}</h3>
-                <p className="text-slate-600 mb-8 flex-grow">{card.desc}</p>
-                <Link href="#" className="bg-[#5951FF]/10 text-[#5951FF] hover:bg-[#5951FF]/20 px-6 py-2.5 rounded-sm font-semibold transition-colors text-center w-max">
-                  Learn more
-                </Link>
+                <h3 className="text-xl font-bold mb-2">{s.t}</h3>
+                <p className="text-slate-600 text-[15px] leading-relaxed">{s.d}</p>
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* 9. PRE-FOOTER CTA */}
-      <section className="bg-black py-24">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="bg-gradient-to-br from-[#1A0B40] to-[#0A0033] rounded-2xl p-12 text-center border border-indigo-500/20 shadow-2xl shadow-indigo-900/20 relative overflow-hidden">
-             {/* Decorative glow */}
-             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#5951FF] rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
-             
-             <div className="w-12 h-12 bg-[#5951FF] rounded-lg flex items-center justify-center mx-auto mb-6">
-               <span className="text-white font-bold text-xl">D</span>
-             </div>
-             <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">DashWin Agentic AI Platform for Revenue Teams</h2>
-             <p className="text-indigo-200/80 mb-10">Automate Pipeline Generation | Personalize Outreach | Close More Deals</p>
-             <div className="flex flex-wrap justify-center gap-4 relative z-10">
-                <button className="bg-[#5951FF] hover:bg-indigo-600 text-white px-8 py-3 rounded-sm font-medium transition-colors">Start for free</button>
-                <button className="bg-transparent border border-white/30 text-white hover:bg-white/10 px-8 py-3 rounded-sm font-medium transition-colors">Get a demo</button>
-             </div>
+          <div className="text-center mt-10">
+            <Link href="/login" className="inline-block text-white font-semibold px-8 py-3.5 rounded-lg" style={{ background: BLUE }}>
+              Start step 1 — it&apos;s free
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 10. HUGE FOOTER */}
-      <footer className="bg-black text-white pt-20 pb-10 border-t border-white/10">
-        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-2 md:grid-cols-5 gap-12 mb-16">
+      {/* WATCH */}
+      <section id="watch" className="py-16 md:py-24 bg-white scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-5 gap-8 items-center rounded-2xl p-6 md:p-12 text-white" style={{ background: "#0B0B14" }}>
+          <div className="lg:col-span-2">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#7A8FFF" }}>Launch film · 1:01</p>
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight mt-2">Watch a customer get won while the owner sleeps.</h2>
+            <p className="text-white/60 mt-3 leading-relaxed text-[15px]">Late-night question, instant answer from the price card, Friday booking, HOT LEAD ping. Narrated start to finish.</p>
+            <Link href="/login" className="inline-flex items-center gap-2 mt-6 text-white font-semibold px-6 py-3 rounded-lg text-sm" style={{ background: BLUE }}>
+              Try it live <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="lg:col-span-3">
+            <video className="w-full rounded-xl border border-white/15" controls preload="none" poster="/dashwin-poster.jpg" src="/dashwin-launch.mp4" />
+          </div>
+        </div>
+      </section>
+
+      {/* SAFETY */}
+      <section id="safety" className="py-16 md:py-24 bg-slate-50 border-t scroll-mt-20">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">Powerful, but polite.</h2>
+          <p className="text-center text-slate-500 mb-10 md:mb-14">Three rules the AI can never break.</p>
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
+            {[
+              { icon: Check, title: "You approve every send", desc: "First messages wait in your review queue. The AI never sends behind your back." },
+              { icon: Ban, title: "STOP means instant block", desc: "Anyone who opts out is blocked across every language we detect. Forever." },
+              { icon: Moon, title: "Capped so you stay safe", desc: "Max 25 sends a day per number — paced like a human, so WhatsApp stays happy." },
+            ].map((c) => (
+              <div key={c.title} className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: `${BLUE}14` }}>
+                  <c.icon className="w-6 h-6" style={{ color: BLUE }} />
+                </div>
+                <h3 className="text-lg font-bold mb-2">{c.title}</h3>
+                <p className="text-slate-600 text-[15px] leading-relaxed">{c.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-10 text-sm text-slate-500 font-medium">
+            <span className="inline-flex items-center gap-1.5"><Clock className="w-4 h-4" /> Works 24/7</span>
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-4 h-4" /> Numbers verified first</span>
+            <span className="inline-flex items-center gap-1.5"><MessageSquare className="w-4 h-4" /> Never invents prices</span>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="bg-black py-16 md:py-24">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="rounded-2xl p-8 md:p-14 text-center border border-white/10 relative overflow-hidden" style={{ background: "#0B0B14" }}>
+            <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 rounded-full blur-[100px] pointer-events-none" style={{ background: `${BLUE}44` }} />
+            <img src="/dashwin-logo.svg" alt="DashWin" className="h-16 md:h-20 mx-auto mb-6 relative" />
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 relative">Meet DashWin.</h2>
+            <p className="text-white/60 mb-8 relative">Less manual work. Fewer missed leads. More opportunities.</p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 relative">
+              <Link href="/login" className="text-white font-semibold px-8 py-3.5 rounded-lg text-center" style={{ background: BLUE }}>
+                Join the launch — free
+              </Link>
+              <Link href="#watch" className="border border-white/25 text-white hover:bg-white/10 px-8 py-3.5 rounded-lg font-semibold text-center transition-colors">
+                Watch the film
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-black text-white pt-14 pb-8 border-t border-white/10">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+          <div className="col-span-2 md:col-span-1">
+            <DashWinLogo dark size={30} />
+            <p className="text-sm text-white/50 mt-4 leading-relaxed">WhatsApp AI that turns chats into customers for local business.</p>
+          </div>
           <div>
-            <h4 className="font-bold mb-6 text-lg">Platform</h4>
-            <ul className="space-y-4 text-sm text-slate-400">
-              <li><Link href="#" className="hover:text-white transition-colors">Agentic Discovery</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Smart Drafts</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">WhatsApp Verifier</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Pipeline Analytics</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Integrations</Link></li>
+            <h4 className="font-bold mb-5">Product</h4>
+            <ul className="space-y-3 text-sm text-white/55">
+              <li><Link href="#how" className="hover:text-white transition-colors">How it works</Link></li>
+              <li><Link href="#example" className="hover:text-white transition-colors">Live example</Link></li>
+              <li><Link href="#safety" className="hover:text-white transition-colors">Safety</Link></li>
               <li><Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-lg">Capabilities</h4>
-            <ul className="space-y-4 text-sm text-slate-400">
-              <li><Link href="#" className="hover:text-white transition-colors">Lead Generation</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Account Based Sales</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Sales Execution</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Revenue Intelligence</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Forecasting</Link></li>
+            <h4 className="font-bold mb-5">Best for</h4>
+            <ul className="space-y-3 text-sm text-white/55">
+              <li>Clinics</li>
+              <li>Salons & spas</li>
+              <li>Real estate</li>
+              <li>Shops & coaches</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold mb-6 text-lg">Sales Teams</h4>
-            <ul className="space-y-4 text-sm text-slate-400">
-              <li><Link href="#" className="hover:text-white transition-colors">SDRs & BDRs</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Account Executives</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Sales Leaders</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">RevOps</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Customer Success</Link></li>
+            <h4 className="font-bold mb-5">Get started</h4>
+            <ul className="space-y-3 text-sm text-white/55">
+              <li><Link href="/login" className="hover:text-white transition-colors">Sign in</Link></li>
+              <li><Link href="/login" className="hover:text-white transition-colors">Start free</Link></li>
+              <li><Link href="#watch" className="hover:text-white transition-colors">Watch the film</Link></li>
             </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-6 text-lg">Company</h4>
-            <ul className="space-y-4 text-sm text-slate-400">
-              <li><Link href="#" className="hover:text-white transition-colors">About Us</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Careers</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Newsroom</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Security</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Contact</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-bold mb-6 text-lg">Talk with us</h4>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4">
-               <div className="flex items-center gap-3 mb-2">
-                 <div className="w-8 h-8 rounded-full bg-indigo-500"></div>
-                 <div>
-                   <p className="text-sm font-bold">Sales Chat</p>
-                   <p className="text-xs text-green-400">Online</p>
-                 </div>
-               </div>
-               <button className="w-full bg-[#5951FF] text-white text-xs font-bold py-2 rounded-sm hover:bg-indigo-600 transition-colors">Start a conversation</button>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Have questions about pricing or custom enterprise plans? Our team is ready to help.
-            </p>
           </div>
         </div>
-        <div className="max-w-[1400px] mx-auto px-6 border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500">
-          <div className="flex gap-6">
-            <Link href="#" className="hover:text-white">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white">Terms of Service</Link>
-            <Link href="#" className="hover:text-white">Cookie Settings</Link>
-          </div>
-          <p>© 2026 DashWin Inc. All rights reserved.</p>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-white/40">
+          <p>© 2026 DashWin. Your next sale starts here.</p>
+          <p>Less work · No missed leads · More sales</p>
         </div>
       </footer>
 

@@ -18,7 +18,8 @@ export const Sidebar = () => {
     ];
 
     return (
-        <div className={`relative transition-all duration-200 h-screen bg-white border-r border-slate-200 flex flex-col ${isCollapsed ? 'w-20' : 'w-64'}`}>
+      <>
+        <div className={`relative transition-all duration-200 h-screen bg-white border-r border-slate-200 hidden md:flex flex-col ${isCollapsed ? 'w-20' : 'w-64'}`}>
             {/* Header */}
             <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200">
                 {!isCollapsed && <DashWinLogo />}
@@ -36,7 +37,7 @@ export const Sidebar = () => {
                     const isActive = pathname === item.href;
                     return (
                         <Link key={item.name} href={item.href}>
-                            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors duration-200 ${isActive ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
+                            <div className={`flex items-center gap-3 px-3 py-2.5 rounded-[10px] transition-colors duration-200 ${isActive ? 'bg-blue-50 text-[#2E4BFF] font-semibold' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-700'}`}>
                                 <item.icon className="w-5 h-5" />
                                 {!isCollapsed && <span className="font-medium text-sm">{item.name}</span>}
                             </div>
@@ -56,5 +57,25 @@ export const Sidebar = () => {
                 </button>
             </div>
         </div>
+
+        {/* Mobile bottom tab bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 flex items-stretch justify-around px-2 pb-[env(safe-area-inset-bottom)]">
+            {navItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                    <Link key={item.name} href={item.href} className="flex-1">
+                        <div className={`flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold ${isActive ? 'text-[#2E4BFF]' : 'text-slate-400'}`}>
+                            <item.icon className="w-5 h-5" />
+                            {item.name}
+                        </div>
+                    </Link>
+                )
+            })}
+            <button onClick={logout} className="flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] font-semibold text-slate-400">
+                <LogOut className="w-5 h-5" />
+                Sign out
+            </button>
+        </nav>
+      </>
     );
 }

@@ -4,7 +4,7 @@
   --color-background: hsl(0 0% 100%);
   --color-foreground: hsl(222.2 84% 4.9%);
   
-  --color-primary: #5951FF;
+  --color-primary: #2E4BFF;
   --color-primary-foreground: hsl(210 40% 98%);
   
   --color-border: hsl(214.3 31.8% 91.4%);
@@ -61,3 +61,14 @@
   50% { transform: translateY(-12px); }
 }
 .animate-floaty { animation: floaty 6s ease-in-out infinite; }
+
+/* Hero chat loop: 9s cycle, each message fades in, holds, fades out. */
+@keyframes chat-cycle {
+  0% { opacity: 0; transform: translateY(14px); }
+  4%, 78% { opacity: 1; transform: translateY(0); }
+  88%, 100% { opacity: 0; transform: translateY(-8px); }
+}
+.chat-msg { opacity: 0; animation: chat-cycle 9s ease-in-out infinite; }
+
+/* Scroll reveal helper (used with framer-motion viewport). */
+.reveal { will-change: transform, opacity; }

@@ -33,8 +33,8 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex bg-white">
-      <div className="hidden md:flex w-[44%] flex-col justify-between p-12 bg-[#120044] text-white relative overflow-hidden">
-        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#5951FF]/30 blur-[110px] animate-drift-a pointer-events-none" />
+      <div className="hidden md:flex w-[44%] flex-col justify-between p-12 bg-[#0B0B14] text-white relative overflow-hidden">
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-[#2E4BFF]/30 blur-[110px] animate-drift-a pointer-events-none" />
         <div className="absolute -bottom-32 -left-16 w-80 h-80 rounded-full bg-fuchsia-500/20 blur-[120px] animate-drift-b pointer-events-none" />
         <Link href="/" className="relative z-10 w-max">
           <DashWinLogo dark />
@@ -55,31 +55,31 @@ export default function Login() {
           <Link href="/" className="md:hidden mb-6 w-max">
             <DashWinLogo />
           </Link>
-          <h2 className="text-2xl font-bold tracking-tight text-[#120044]">{isLogin ? "Welcome back" : "Create account"}</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-[#0B0B14]">{isLogin ? "Welcome back" : "Create account"}</h2>
           <p className="text-sm text-[#4c4480] mt-1 mb-6">{isLogin ? "Sign in to your sales engine." : "Start winning pipelines today."}</p>
           <form onSubmit={handleAuth} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-[#4c4480] mb-1">Email address</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-                className="w-full bg-white border border-[#e4e1f5] rounded px-4 py-2.5 text-[#120044] focus:outline-none focus:ring-2 focus:ring-[#5951ff]/30 focus:border-[#5951ff]" />
+                className="w-full bg-white border border-[#e4e1f5] rounded px-4 py-2.5 text-[#0B0B14] focus:outline-none focus:ring-2 focus:ring-[#2E4BFF]/30 focus:border-[#2E4BFF]" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#4c4480] mb-1">Password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required
-                className="w-full bg-white border border-[#e4e1f5] rounded px-4 py-2.5 text-[#120044] focus:outline-none focus:ring-2 focus:ring-[#5951ff]/30 focus:border-[#5951ff]" />
+                className="w-full bg-white border border-[#e4e1f5] rounded px-4 py-2.5 text-[#0B0B14] focus:outline-none focus:ring-2 focus:ring-[#2E4BFF]/30 focus:border-[#2E4BFF]" />
             </div>
-            <button type="submit" className="ui-press w-full bg-[#5951ff] hover:bg-[#4640e0] text-white font-semibold py-2.5 rounded">
+            <button type="submit" className="ui-press w-full bg-[#2E4BFF] hover:bg-[#1D33D6] text-white font-semibold py-2.5 rounded">
               {isLogin ? "Sign In" : "Create Account"}
             </button>
           </form>
           <p className="text-center mt-5 text-sm text-[#4c4480]">
             {isLogin ? "Don't have an account?" : "Already have an account?"}
-            <button onClick={() => setIsLogin(!isLogin)} className="ml-2 font-semibold text-[#5951ff] hover:text-[#4640e0]">
+            <button onClick={() => setIsLogin(!isLogin)} className="ml-2 font-semibold text-[#2E4BFF] hover:text-[#1D33D6]">
               {isLogin ? "Sign Up" : "Sign In"}
             </button>
           </p>
           <p className="text-center mt-4 text-xs">
-            <Link href="/" className="text-[#a099b4] hover:text-[#120044]">← Back to site</Link>
+            <Link href="/" className="text-[#a099b4] hover:text-[#0B0B14]">← Back to site</Link>
           </p>
         </div>
       </div>
