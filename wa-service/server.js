@@ -79,6 +79,8 @@ async function connectUser(userId) {
         ...(ProxyAgent ? { agent: new ProxyAgent(PROXY_URL) } : {}),
     });
     st.sock = sock;
+    st.sockBornAt = Date.now();
+    st.lastCode = null;
     sock.ev.on('creds.update', (creds) => { saveCreds(); scheduleBackup(userId); });
     sock.ev.on('connection.update', (u) => {
         const { connection, lastDisconnect, qr } = u;
@@ -173,17 +175,31 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     if (phone.length < 10 || phone.length > 15) return res.status(400).json({ error: 'phone must be 10-15 digits WITH country code, e.g. 919876543210' });
     const st = getRT(userId);
     if (st.connected && !fresh) return res.json({ alreadyConnected: true });
+    // One pairing flow at a time: a second tap while one runs kills the
+    // first socket mid-request (perpetual "Connection Closed"). Refuse it.
+    if (st.pairBusy) return res.status(429).json({ error: 'A code request is already running — wait 30s, then tap Get code ONCE and wait.' });
+    st.pairBusy = true;
+    try {
+    // Rebuild ONLY on evidence of death — never blindly, or rapid taps kill
+    // each other's handshakes (perpetual "Connection Closed").
+    const sockDead = !st.sock || st.lastCode != null;
     // "Reset session" path: poisoned keys (repeated 401s) can never pair —
     // wipe the auth dir so the next socket registers brand-new keys.
     if (fresh) {
         try { if (st.sock) { st.sock.ev.removeAllListeners(); st.sock.end(); } } catch (e) {}
-        st.sock = null; st.qr = null; st.connected = false;
+        st.sock = null; st.qr = null; st.connected = false; st.lastCode = null;
         try { fs.rmSync(path.join(AUTH_ROOT, userId), { recursive: true, force: true }); } catch (e) {}
         console.log(`[BAILEYS] session reset for ${userId}`);
     }
-    // Fresh socket per code request: a stale/half-dead socket issues codes the
-    // phone then rejects. Rebuild, wait for pairing state, then request.
-    try { await connectUser(userId); } catch (e) {}
+    const stillDead = !st.sock;
+    const sockYoung = st.sock && st.sockBornAt && (Date.now() - st.sockBornAt < 40000);
+    if (fresh || stillDead || sockDead) {
+        try { await connectUser(userId); } catch (e) {}
+    } else if (!sockYoung && !st.qr) {
+        // Socket exists but wedged (old, no QR, no close): rebuild once.
+        try { await connectUser(userId); } catch (e) {}
+    }
+    // else: handshake in flight — wait for it, don't kill it.
     if (!st.sock) return res.status(503).json({ error: 'engine starting, retry in 10s' });
     if (st.connected) return res.json({ alreadyConnected: true });
     // Wait until the socket reaches pairing state (QR offered), max ~25s.
@@ -221,6 +237,9 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     } finally {
         // Keep keys for ~3 min so the user can type the code; then clear flag.
         setTimeout(() => { st.pairing = false; }, 180000);
+    }
+    } finally {
+        st.pairBusy = false;
     }
 });
 

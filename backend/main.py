@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, Depends, HTTPException, BackgroundTasks
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 import os
 
@@ -239,7 +240,7 @@ def wa_pair_proxy(request: PairRequest):
         r = _rq.post(f"{_WA_LOCAL}/api/whatsapp/pair",
                      json={"userId": request.userId, "phone": digits, "fresh": request.fresh}, timeout=120)
         try:
-            return r.json()
+            return JSONResponse(status_code=r.status_code, content=r.json())
         except Exception:
             raise HTTPException(status_code=r.status_code, detail=f"WA engine said {r.status_code}")
     except HTTPException:
