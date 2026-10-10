@@ -41,8 +41,11 @@ export default function DashboardPage() {
   const [qrCode, setQrCode] = useState<string | null>(null);
   const [waConnected, setWaConnected] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [modalSince, setModalSince] = useState(0);
+  useEffect(() => { if (showQRModal) { setModalSince(Date.now()); setPairCode(""); } }, [showQRModal]);
   const [pairTab, setPairTab] = useState<"qr" | "code">("qr");
   const [pairPhone, setPairPhone] = useState("");
+  const [pairNote, setPairNote] = useState("");
   const [pairCode, setPairCode] = useState("");
   const [pairing, setPairing] = useState(false);
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -425,8 +428,16 @@ export default function DashboardPage() {
                         <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48" />
                     </div>
                 ) : (
-                    <div className="w-48 h-48 bg-slate-100 rounded flex items-center justify-center">
+                    <div className="w-48 min-h-48 bg-slate-100 rounded flex flex-col items-center justify-center p-4 text-center">
                         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                        <p className="text-xs font-semibold text-slate-500 mt-3">
+                          {nowTick - modalSince < 20000
+                            ? "Waking up the server… first visit takes ~1 min."
+                            : nowTick - modalSince < 60000
+                              ? "Connecting to WhatsApp… almost there."
+                              : "Still working — slow networks take longer. Keep this open."}
+                        </p>
+                        <p className="tnum text-[11px] text-slate-400 mt-1">{Math.max(0, Math.round((nowTick - modalSince) / 1000))}s</p>
                     </div>
                 )}
                 </>
@@ -439,15 +450,22 @@ export default function DashboardPage() {
                       className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#2E4BFF]" />
                     <button disabled={pairing} onClick={async () => {
                       if (!user) return;
-                      setPairing(true); setPairCode("");
+                      setPairing(true); setPairCode(""); setPairNote("Asking WhatsApp for a code…");
                       try {
                         const digits = pairPhone.replace(/\D/g, "");
                         if (digits.length < 10 || digits.length > 15)
                           throw new Error("Use the full number WITH country code, digits only — e.g. 919876543210 (India), 971501234567 (UAE), 966551234567 (Saudi).");
-                        const res = await fetch(`${API_BASE}/api/whatsapp/pair`, {
+                        const ask = async () => fetch(`${API_BASE}/api/whatsapp/pair`, {
                           method: "POST", headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ userId: user.uid, phone: digits })
                         });
+                        let res = await ask();
+                        if (res.status === 503) {
+                          setPairNote("Engine is waking up — retrying automatically in 12s…");
+                          await new Promise((r) => setTimeout(r, 12000));
+                          setPairNote("Retrying…");
+                          res = await ask();
+                        }
                         const json = await res.json().catch(() => ({}));
                         if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
                         else if (json.code) setPairCode(json.code);
@@ -455,12 +473,13 @@ export default function DashboardPage() {
                         else if (res.status === 503) throw new Error("WhatsApp engine is starting. Wait ~10s and retry.");
                         else throw new Error(json.error || json.detail || `Server ${res.status}`);
                       } catch (err: any) { alert(`Pairing failed: ${err?.message || err}`); }
-                      setPairing(false);
+                      setPairing(false); setPairNote("");
                     }}
                       className="bg-[#2E4BFF] hover:bg-[#1D33D6] disabled:opacity-50 text-white text-xs font-bold px-4 rounded">
                       {pairing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get code"}
                     </button>
                   </div>
+                  {pairNote && <p className="text-[11px] font-semibold text-[#2E4BFF] mt-2 text-center">{pairNote}</p>}
                   {pairCode && (
                     <div className="mt-3 bg-[#0B0B14] rounded p-4 text-center">
                       <p className="tnum text-3xl font-bold text-white tracking-[0.2em]">{pairCode}</p>
