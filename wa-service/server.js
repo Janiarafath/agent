@@ -64,6 +64,9 @@ async function connectUser(userId) {
         syncFullHistory: false,
         markOnlineOnConnect: false,
         generateHighQualityLinkPreview: false,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 15000,
     });
     st.sock = sock;
     sock.ev.on('creds.update', saveCreds);
@@ -82,6 +85,15 @@ async function connectUser(userId) {
             const code = lastDisconnect?.error?.output?.statusCode;
             console.log(`[BAILEYS] closed ${userId} code=${code}`);
             if (code === DisconnectReason.loggedOut) {
+                // Never wipe a session that never registered or has a pairing
+                // code in flight — wiping kills the code the user is typing.
+                const hadSession = !!(state.creds && state.creds.registered);
+                if (st.pairing || !hadSession) {
+                    console.log(`[BAILEYS] ${userId} pre-auth close (pairing=${!!st.pairing}) — reconnect, keep keys`);
+                    st.retry = Math.min((st.retry || 0) + 1, 5);
+                    setTimeout(() => connectUser(userId), (st.retry || 1) * 5000);
+                    return;
+                }
                 try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
                 st.qr = null;
                 console.log(`[BAILEYS] ${userId} logged out — rescan needed`);
@@ -133,7 +145,9 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     const phone = String(req.body?.phone || req.query.phone || '').replace(/\D/g, '');
     if (phone.length < 10 || phone.length > 15) return res.status(400).json({ error: 'phone must be 10-15 digits WITH country code, e.g. 919876543210' });
     const st = getRT(userId);
-    if (!st.sock) { try { await connectUser(userId); } catch (e) {} }
+    // Fresh socket per code request: a stale/half-dead socket issues codes the
+    // phone then rejects. Rebuild, wait for pairing state, then request.
+    try { await connectUser(userId); } catch (e) {}
     if (!st.sock) return res.status(503).json({ error: 'engine starting, retry in 10s' });
     if (st.connected) return res.json({ alreadyConnected: true });
     // Wait until the socket reaches pairing state (QR offered), max ~25s.
@@ -143,13 +157,17 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     }
     if (st.connected) return res.json({ alreadyConnected: true });
     if (!st.qr) return res.status(503).json({ error: 'session not ready, retry in 10s' });
+    st.pairing = true;
     try {
         const code = await st.sock.requestPairingCode(phone);
-        console.log(`[BAILEYS] pairing code for ${userId}`);
-        return res.json({ code });
+        console.log(`[BAILEYS] pairing code for ${userId} (${phone})`);
+        return res.json({ code, phone });
     } catch (e) {
         console.log('[BAILEYS] pairing fail:', e.message);
         return res.status(500).json({ error: String(e.message || e).slice(0, 200) });
+    } finally {
+        // Keep keys for ~3 min so the user can type the code; then clear flag.
+        setTimeout(() => { st.pairing = false; }, 180000);
     }
 });
 
