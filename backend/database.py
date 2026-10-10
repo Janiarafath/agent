@@ -17,13 +17,15 @@ if "neon.tech" in DATABASE_URL:
     # Resilience: some ISP DNS returns IPv6-only answers for the pooler while
     # this machine has no IPv6 route. Pin a working IPv4 via DNS-over-HTTPS
     # (hostaddr keeps TLS/SNI on the real hostname).
+    import re as _re
+    _host = (_re.search(r"@([^/:?#]+)", DATABASE_URL) or [None, ""])[1]
     _FALLBACK_IPS = ["52.14.39.200", "52.95.251.153", "77.112.100.143"]
     _ip = ""
     try:
         import json as _json
         import urllib.request as _url
         with _url.urlopen(
-            "https://dns.google/resolve?name=ep-curly-king-b4ckgxwa-pooler.c-6.us-east-2.aws.neon.tech&type=A",
+            f"https://dns.google/resolve?name={_host}&type=A",
             timeout=10,
         ) as _r:
             for _a in _json.loads(_r.read().decode()).get("Answer", []):

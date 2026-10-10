@@ -167,3 +167,14 @@ class RecoveryDraft(Base):
     draft = Column(String, default="")  # editable message text
     status = Column(String, default="pending")  # pending | sent | skipped
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class WaSession(Base):
+    """WhatsApp login vault: Baileys auth files per user, base64 in JSON.
+    Why: Cloud Run wipes /tmp on every redeploy. The engine auto-backs-up
+    here and resurrects sessions on boot — no QR re-scan after deploys.
+    Only sessions linked from a trusted (residential) IP stay valid."""
+    __tablename__ = "wa_sessions"
+
+    user_id = Column(String, primary_key=True)
+    files = Column(JSON, default=dict)  # { filename: base64 }
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

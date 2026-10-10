@@ -16,6 +16,14 @@ const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLat
 const PORT = parseInt(process.env.WA_PORT || '3002', 10);
 const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
 const AUTH_ROOT = process.env.WA_AUTH_DIR || path.join(__dirname, 'auth_info_baileys');
+// Residential egress for WA traffic (datacenter IPs get logins killed).
+// Set PROXY_URL=https://user:pass@host:port on the host. Empty = direct.
+const PROXY_URL = process.env.PROXY_URL || '';
+let ProxyAgent = null;
+if (PROXY_URL) {
+    try { ProxyAgent = require(NM + '/https-proxy-agent').HttpsProxyAgent; console.log('[BAILEYS] egress via proxy'); }
+    catch (e) { console.log('[BAILEYS] PROXY_URL set but https-proxy-agent missing — direct'); }
+}
 
 const app = express();
 app.use(express.json());
@@ -67,9 +75,10 @@ async function connectUser(userId) {
         connectTimeoutMs: 60000,
         defaultQueryTimeoutMs: 60000,
         keepAliveIntervalMs: 15000,
+        ...(ProxyAgent ? { agent: new ProxyAgent(PROXY_URL) } : {}),
     });
     st.sock = sock;
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', (creds) => { saveCreds(); scheduleBackup(userId); });
     sock.ev.on('connection.update', (u) => {
         const { connection, lastDisconnect, qr } = u;
         if (qr) {
@@ -277,4 +286,70 @@ app.get('/health', (req, res) => {
 process.on('unhandledRejection', (e) => console.log('[BAILEYS] unhandledRejection suppressed:', e && e.message));
 process.on('uncaughtException', (e) => console.log('[BAILEYS] uncaughtException suppressed:', e && e.message));
 
-app.listen(PORT, () => console.log(`Baileys wa-service on :${PORT} (contract-compatible)`));
+// ---- Session vault: survive redeploys ------------------------------------
+// Auth files live in AUTH_ROOT (wiped on Cloud Run redeploys). Every linked
+// session is backed up to the backend DB and resurrected on boot.
+const backupTimers = new Map();
+function readSessionFiles(userId) {
+    const dir = path.join(AUTH_ROOT, userId);
+    const out = {};
+    try {
+        for (const n of fs.readdirSync(dir)) {
+            if (/^[\w.\-]+$/.test(n) && !n.startsWith('.') && n.length < 64) {
+                const p = path.join(dir, n);
+                if (fs.statSync(p).isFile() && fs.statSync(p).size < 2 * 1024 * 1024) {
+                    out[n] = fs.readFileSync(p).toString('base64');
+                }
+            }
+        }
+    } catch (e) {}
+    return out;
+}
+async function backupNow(userId) {
+    try {
+        const files = readSessionFiles(userId);
+        if (!files['creds.json']) return;
+        await axios.post(`${BACKEND}/api/whatsapp/vault-backup`, { userId, files }, { timeout: 30000 });
+        console.log(`[BAILEYS] vault backup ${userId} (${Object.keys(files).length} files)`);
+    } catch (e) { console.log(`[BAILEYS] vault backup fail ${userId}:`, e.message); }
+}
+function scheduleBackup(userId) {
+    if (backupTimers.has(userId)) return;
+    backupTimers.set(userId, setTimeout(() => {
+        backupTimers.delete(userId);
+        backupNow(userId);
+    }, 30000));
+}
+async function resurrectAll() {
+    // Pull every backed-up session from the DB and reconnect — no rescan after deploys.
+    try {
+        const { data } = await axios.get(`${BACKEND}/api/whatsapp/vault`, { timeout: 30000 });
+        for (const uid of data.userIds || []) {
+            try {
+                const dir = path.join(AUTH_ROOT, String(uid));
+                const hasCreds = fs.existsSync(path.join(dir, 'creds.json'));
+                if (!hasCreds) {
+                    const r = await axios.get(`${BACKEND}/api/whatsapp/vault/${encodeURIComponent(uid)}`, { timeout: 30000 });
+                    fs.mkdirSync(dir, { recursive: true });
+                    for (const [n, b64] of Object.entries(r.data.files || {})) {
+                        if (/^[\w.\-]+$/.test(n) && !n.startsWith('.')) {
+                            fs.writeFileSync(path.join(dir, n), Buffer.from(b64, 'base64'));
+                        }
+                    }
+                    console.log(`[BAILEYS] resurrected session ${uid}`);
+                }
+                connectUser(uid).catch((e) => console.log('[BAILEYS] resurrect fail', uid, e.message));
+            } catch (e) { console.log('[BAILEYS] resurrect skip', uid, e.message); }
+        }
+    } catch (e) { console.log('[BAILEYS] vault list fail:', e.message); }
+}
+setInterval(() => { // safety net: re-backup every connected session every 10 min
+    for (const [uid, st] of rt) {
+        if (st.connected) backupNow(uid).catch(() => {});
+    }
+}, 10 * 60 * 1000);
+
+app.listen(PORT, () => {
+    console.log(`Baileys wa-service on :${PORT} (contract-compatible)`);
+    setTimeout(resurrectAll, 15000); // let backend finish booting first
+});

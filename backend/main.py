@@ -169,6 +169,45 @@ class RestoreRequest(BaseModel):
     files: dict = {}
 
 
+class VaultBackup(BaseModel):
+    userId: str = ""
+    files: dict = {}
+
+
+@app.post("/api/whatsapp/vault-backup")
+def wa_vault_backup(request: VaultBackup, db: Session = Depends(get_db)):
+    """Engine auto-saves linked sessions here (survives redeploys)."""
+    if not request.userId or "creds.json" not in (request.files or {}):
+        raise HTTPException(status_code=422, detail="userId + files incl. creds.json required")
+    names = [n for n in request.files if isinstance(n, str) and len(n) < 64 and not n.startswith(".")]
+    if len(names) > 30:
+        raise HTTPException(status_code=422, detail="too many files")
+    row = db.query(models.WaSession).filter(models.WaSession.user_id == request.userId).first()
+    payload = {n: request.files[n] for n in names}
+    if row:
+        row.files = payload
+    else:
+        db.add(models.WaSession(user_id=request.userId, files=payload))
+    db.commit()
+    return {"ok": True, "files": len(payload)}
+
+
+@app.get("/api/whatsapp/vault/{user_id}")
+def wa_vault_fetch(user_id: str, db: Session = Depends(get_db)):
+    """Fetch one backed-up session (engine boot resurrection)."""
+    row = db.query(models.WaSession).filter(models.WaSession.user_id == user_id).first()
+    if not row or not (row.files or {}).get("creds.json"):
+        raise HTTPException(status_code=404, detail="no backup")
+    return {"userId": user_id, "files": row.files}
+
+
+@app.get("/api/whatsapp/vault")
+def wa_vault_list(db: Session = Depends(get_db)):
+    """All userIds with session backups (engine boot resurrection)."""
+    rows = db.query(models.WaSession.user_id).all()
+    return {"userIds": [r[0] for r in rows]}
+
+
 @app.post("/api/whatsapp/restore")
 def wa_restore_proxy(request: RestoreRequest):
     """Upload a home-linked WhatsApp session to the cloud engine (see wa-service)."""
