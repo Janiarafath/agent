@@ -32,9 +32,10 @@ app.use(cors());
 // per-user runtime
 const rt = new Map(); // userId -> { sock, connected, qr, retry, jidCache }
 function getRT(userId) {
-    if (!rt.has(userId)) rt.set(userId, { sock: null, connected: false, qr: null, retry: 0, jidCache: {} });
+    if (!rt.has(userId)) rt.set(userId, { sock: null, connected: false, qr: null, retry: 0, jidCache: {}, lastCode: null, lastChange: Date.now(), pairing: false });
     return rt.get(userId);
 }
+const BOOT_AT = Date.now();
 
 function textOf(msg) {
     const m = msg.message || {};
@@ -81,6 +82,7 @@ async function connectUser(userId) {
     sock.ev.on('creds.update', (creds) => { saveCreds(); scheduleBackup(userId); });
     sock.ev.on('connection.update', (u) => {
         const { connection, lastDisconnect, qr } = u;
+        st.lastChange = Date.now();
         if (qr) {
             qrcode.toDataURL(qr).then((d) => { st.qr = d; }).catch(() => {});
             console.log(`[BAILEYS] QR for ${userId}`);
@@ -92,6 +94,7 @@ async function connectUser(userId) {
         if (connection === 'close') {
             st.connected = false;
             const code = lastDisconnect?.error?.output?.statusCode;
+            st.lastCode = code ?? null;
             console.log(`[BAILEYS] closed ${userId} code=${code}`);
             if (code === DisconnectReason.loggedOut) {
                 // Never wipe a session that never registered or has a pairing
@@ -144,7 +147,21 @@ app.get('/api/whatsapp/status', (req, res) => {
     const userId = req.query.userId || 'default_user';
     const st = getRT(userId);
     if (!st.sock) connectUser(userId).catch((e) => console.log('[BAILEYS] connect fail', e.message));
-    res.json({ connected: st.connected, qr: st.qr });
+    res.json({
+        connected: st.connected,
+        qr: st.qr,
+        diag: {
+            hasSocket: !!st.sock,
+            lastCode: st.lastCode,
+            secsSinceChange: Math.round((Date.now() - (st.lastChange || Date.now())) / 1000),
+            retries: st.retry || 0,
+            pairing: !!st.pairing,
+            waVersion: global._waVersion ? global._waVersion.join('.') : null,
+            viaProxy: !!ProxyAgent,
+            uptimeMin: Math.round((Date.now() - BOOT_AT) / 60000),
+            sessions: rt.size,
+        },
+    });
 });
 
 // Pairing code for phones that can't scan (mobile browsers, single device).
