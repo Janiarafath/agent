@@ -456,16 +456,16 @@ export default function DashboardPage() {
                         const digits = pairPhone.replace(/\D/g, "");
                         if (digits.length < 10 || digits.length > 15)
                           throw new Error("Use the full number WITH country code, digits only — e.g. 919876543210 (India), 971501234567 (UAE), 966551234567 (Saudi).");
-                        const ask = async () => fetch(`${API_BASE}/api/whatsapp/pair`, {
+                        const ask = async (withFresh: boolean) => fetch(`${API_BASE}/api/whatsapp/pair`, {
                           method: "POST", headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ userId: user.uid, phone: digits })
+                          body: JSON.stringify({ userId: user.uid, phone: digits, fresh: withFresh })
                         });
-                        let res = await ask();
+                        let res = await ask(false);
                         if (res.status === 503) {
                           setPairNote("Engine is waking up — retrying automatically in 12s…");
                           await new Promise((r) => setTimeout(r, 12000));
                           setPairNote("Retrying…");
-                          res = await ask();
+                          res = await ask(false);
                         }
                         const json = await res.json().catch(() => ({}));
                         if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
@@ -481,6 +481,35 @@ export default function DashboardPage() {
                     </button>
                   </div>
                   {pairNote && <p className="text-[11px] font-semibold text-[#2E4BFF] mt-2 text-center">{pairNote}</p>}
+                  <button
+                    onClick={async () => {
+                      if (!user) return;
+                      if (!confirm("Reset the WhatsApp session and get a fresh code? Use this if codes keep failing. Any existing link on this sender will need re-linking.")) return;
+                      const digits = pairPhone.replace(/\D/g, "");
+                      if (digits.length < 10 || digits.length > 15) { alert("Enter your number with country code first — e.g. 919042500863."); return; }
+                      setPairing(true); setPairCode(""); setPairNote("Resetting session…");
+                      try {
+                        let res = await fetch(`${API_BASE}/api/whatsapp/pair`, {
+                          method: "POST", headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ userId: user.uid, phone: digits, fresh: true })
+                        });
+                        if (res.status === 503) {
+                          setPairNote("Engine is waking up — retrying automatically in 12s…");
+                          await new Promise((r) => setTimeout(r, 12000));
+                          res = await fetch(`${API_BASE}/api/whatsapp/pair`, {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: user.uid, phone: digits, fresh: true })
+                          });
+                        }
+                        const json = await res.json().catch(() => ({}));
+                        if (json.code) { setPairCode(json.code); setPairFor(json.phone || digits); setPairNote(""); }
+                        else throw new Error(json.error || json.detail || `Server ${res.status}`);
+                      } catch (err: any) { alert(`Reset failed: ${err?.message || err}`); }
+                      setPairing(false); setPairNote("");
+                    }}
+                    className="w-full text-center text-[11px] font-semibold text-[#4c4480] hover:text-[#2E4BFF] mt-2 underline underline-offset-2">
+                    Code keeps failing? Reset session & retry
+                  </button>
                   {pairCode && (
                     <div className="mt-3 bg-[#0B0B14] rounded p-4 text-center">
                       <p className="text-[11px] font-bold text-amber-300">Code for +{pairFor} — must match the WhatsApp account on THIS phone (check in WhatsApp → Settings → profile)</p>
