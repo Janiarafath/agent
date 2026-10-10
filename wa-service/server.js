@@ -122,7 +122,7 @@ app.get('/api/whatsapp/status', (req, res) => {
 app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     const userId = req.body?.userId || req.query.userId || 'default_user';
     const phone = String(req.body?.phone || req.query.phone || '').replace(/\D/g, '');
-    if (!phone) return res.status(400).json({ error: 'phone required, e.g. 919876543210' });
+    if (phone.length < 10 || phone.length > 15) return res.status(400).json({ error: 'phone must be 10-15 digits WITH country code, e.g. 919876543210' });
     const st = getRT(userId);
     if (!st.sock) { try { await connectUser(userId); } catch (e) {} }
     if (!st.sock) return res.status(503).json({ error: 'engine starting, retry in 10s' });

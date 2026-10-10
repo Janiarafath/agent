@@ -165,11 +165,22 @@ class PairRequest(BaseModel):
 
 @app.post("/api/whatsapp/pair")
 def wa_pair_proxy(request: PairRequest):
-    """Pairing-code login for phones that can't scan QR (mobile browsers)."""
+    """Pairing-code login for phones that can't scan QR (mobile browsers).
+    Phone must be full international digits WITH country code, e.g.
+    919876543210 (IN), 971501234567 (AE), 966551234567 (SA)."""
+    import re
+    digits = re.sub(r"\D", "", request.phone or "")
+    if len(digits) < 10 or len(digits) > 15:
+        raise HTTPException(status_code=422, detail="phone must be 10-15 digits WITH country code, e.g. 919876543210")
     try:
         r = _rq.post(f"{_WA_LOCAL}/api/whatsapp/pair",
-                     json={"userId": request.userId, "phone": request.phone}, timeout=30)
-        return r.json()
+                     json={"userId": request.userId, "phone": digits}, timeout=60)
+        try:
+            return r.json()
+        except Exception:
+            raise HTTPException(status_code=r.status_code, detail=f"WA engine said {r.status_code}")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
 
