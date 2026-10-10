@@ -7,7 +7,7 @@ import { DashWinLogo } from "@/components/Logo";
 import {
   ArrowRight, Play, Search, ShieldCheck, MessageSquare, Calendar,
   Stethoscope, Scissors, Home, Wrench, GraduationCap, UtensilsCrossed,
-  Check, Moon, Ban, Menu, X, Zap, Clock, Rocket,
+  Check, Moon, Ban, Menu, X, Zap, Clock, Rocket, Smartphone,
 } from "lucide-react";
 
 const rise = {
@@ -137,7 +137,7 @@ export default function Landing() {
       {/* HERO */}
       <section className="bg-[#050505] text-white pt-28 md:pt-40 pb-16 md:pb-24 relative overflow-hidden">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full blur-[140px] pointer-events-none" style={{ background: `${BLUE}33` }} />
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
             <motion.p variants={rise} initial="hidden" animate="show"
               className="inline-flex items-center gap-2 text-[11px] md:text-xs font-bold tracking-[0.18em] uppercase border border-white/15 bg-white/5 rounded-full px-4 py-2 mb-6 text-white/80">
@@ -167,17 +167,20 @@ export default function Landing() {
             <motion.div variants={rise} initial="hidden" animate="show" custom={4}
               className="flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 text-[13px] text-white/55 font-medium">
               <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> No sales team needed</span>
+              <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> Runs on YOUR number — no new SIM</span>
               <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> You approve every send</span>
               <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> Works while you sleep</span>
             </motion.div>
           </div>
-          <motion.div variants={rise} initial="hidden" animate="show" custom={2} className="relative">
-            <HeroPhone />
-            <div className="mt-4 md:absolute md:-left-6 md:top-8 bg-white text-slate-900 rounded-xl shadow-xl px-4 py-3 flex items-center gap-3 md:max-w-[220px]">
+          <motion.div variants={rise} initial="hidden" animate="show" custom={2} className="relative lg:px-10">
+            <div className="transition-transform duration-300 hover:scale-[1.02]">
+              <HeroPhone />
+            </div>
+            <div className="mt-4 lg:absolute lg:left-0 lg:top-10 z-10 bg-white text-slate-900 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-3 lg:max-w-[220px]">
               <span className="text-2xl">🔥</span>
               <p className="text-xs font-bold leading-snug">HOT LEAD booked + Zoom link sent to your phone</p>
             </div>
-            <div className="mt-3 md:absolute md:-right-2 md:bottom-10 text-white rounded-xl px-4 py-3 md:max-w-[200px]" style={{ background: BLUE }}>
+            <div className="mt-3 lg:absolute lg:right-0 lg:bottom-12 z-10 text-white rounded-xl shadow-2xl px-4 py-3 lg:max-w-[200px]" style={{ background: BLUE }}>
               <p className="text-2xl font-bold">~60s</p>
               <p className="text-xs font-semibold opacity-90">First reply, asleep or not</p>
             </div>
@@ -185,12 +188,22 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* OUTCOMES MARQUEE */}
+      <div className="bg-[#050505] border-y border-white/10 overflow-hidden py-4">
+        <div className="flex whitespace-nowrap animate-marquee gap-10 text-sm font-semibold text-white/70 w-max">
+          {["🔥 HOT LEAD booked + Zoom link sent", "✓ Friday 2 PM · confirmed", "💬 Replied in 41 seconds", "📅 3 meetings this week", "🌙 Sold while the owner slept", "🔥 HOT LEAD booked + Zoom link sent", "✓ Friday 2 PM · confirmed", "💬 Replied in 41 seconds", "📅 3 meetings this week", "🌙 Sold while the owner slept"].map((c, i) => (
+            <span key={i} className="flex items-center gap-10">{c} <span style={{ color: BLUE }}>✦</span></span>
+          ))}
+        </div>
+      </div>
+
       {/* WHO IT'S FOR */}
       <section className="bg-white border-b py-10 md:py-12">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-          <p className="text-center text-xs font-bold tracking-[0.18em] text-slate-400 uppercase mb-6">
-            Built for businesses like yours
+          <p className="text-center text-xs font-bold tracking-[0.18em] text-slate-400 uppercase mb-2">
+            Made for local business — every kind
           </p>
+          <p className="text-center text-sm text-slate-500 mb-6">If your customers text you, DashWin fits. Some friends already on board:</p>
           <div className="flex flex-wrap justify-center gap-2.5 md:gap-3">
             {BIZ.map((b) => (
               <div key={b.label} className="flex items-center gap-2 border border-slate-200 rounded-full px-4 py-2 text-sm font-semibold text-slate-600">
@@ -198,6 +211,9 @@ export default function Landing() {
                 {b.label}
               </div>
             ))}
+            <div className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-white" style={{ background: BLUE }}>
+              + any business with customers
+            </div>
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-7 text-sm font-bold text-slate-900">
             <span><span className="tnum" style={{ color: BLUE }}>25/day</span> <span className="font-medium text-slate-500">guarded sends</span></span>
@@ -332,9 +348,10 @@ export default function Landing() {
       <section id="safety" className="py-16 md:py-24 bg-slate-50 border-t scroll-mt-20">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3">Powerful, but polite.</h2>
-          <p className="text-center text-slate-500 mb-10 md:mb-14">Three rules the AI can never break.</p>
-          <div className="grid md:grid-cols-3 gap-4 md:gap-5">
+          <p className="text-center text-slate-500 mb-10 md:mb-14">Four rules the AI can never break.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             {[
+              { icon: Smartphone, title: "Your number, not a new one", desc: "No new SIM, no new phone. DashWin links your existing WhatsApp in one scan and sends as you." },
               { icon: Check, title: "You approve every send", desc: "First messages wait in your review queue. The AI never sends behind your back." },
               { icon: Ban, title: "STOP means instant block", desc: "Anyone who opts out is blocked across every language we detect. Forever." },
               { icon: Moon, title: "Capped so you stay safe", desc: "Max 25 sends a day per number — paced like a human, so WhatsApp stays happy." },
@@ -361,7 +378,9 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="rounded-2xl p-8 md:p-14 text-center border border-white/10 relative overflow-hidden" style={{ background: "#0B0B14" }}>
             <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-48 rounded-full blur-[100px] pointer-events-none" style={{ background: `${BLUE}44` }} />
-            <img src="/dashwin-logo.svg" alt="DashWin" className="h-16 md:h-20 mx-auto mb-6 relative" />
+            <div className="flex justify-center mb-6 relative">
+              <DashWinLogo dark size={64} />
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold text-white mb-3 relative">Meet DashWin.</h2>
             <p className="text-white/60 mb-8 relative">Less manual work. Fewer missed leads. More opportunities.</p>
             <div className="flex flex-col sm:flex-row justify-center gap-3 relative">
@@ -395,10 +414,10 @@ export default function Landing() {
           <div>
             <h4 className="font-bold mb-5">Best for</h4>
             <ul className="space-y-3 text-sm text-white/55">
-              <li>Clinics</li>
-              <li>Salons & spas</li>
-              <li>Real estate</li>
-              <li>Shops & coaches</li>
+              <li>Clinics & salons</li>
+              <li>Shops & services</li>
+              <li>Realtors & coaches</li>
+              <li>Any business with customers</li>
             </ul>
           </div>
           <div>

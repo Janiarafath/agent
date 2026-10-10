@@ -389,17 +389,21 @@ export default function DashboardPage() {
   ];
   const inStage = (state: string, match: string[]) =>
     match.some((s) => state === s || state === `PipelineState.${s}`);
+  const srcName = (s: string) => ({ osm: "Maps", tavily_free: "Web", google_places_api: "Google" }[(s || "").toLowerCase()] || "DashWin");
   const stageLeads = (data?.pipeline || []).filter((p) =>
     inStage(p.pipeline_state, stages.find((s) => s.key === activeStage)?.match || []));
+  // Review hides leads with no number (nothing to approve) — counted, not shown.
+  const visibleLeads = activeStage === "review" ? stageLeads.filter((p) => p.public_phone) : stageLeads;
+  const hiddenNoNumber = activeStage === "review" ? stageLeads.length - visibleLeads.length : 0;
   const stageCount = (key: string) =>
     (data?.pipeline || []).filter((p) => inStage(p.pipeline_state, stages.find((s) => s.key === key)?.match || [])).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-5 md:space-y-6">
 
       {showQRModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B0B14]/50 p-4">
-            <div className="bg-white border border-[#e4e1f5] rounded-lg p-8 max-w-sm w-full flex flex-col items-center">
+            <div className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-8 max-w-sm w-full flex flex-col items-center">
                 <div className="w-12 h-12 bg-[#ecfdf5] rounded-full flex items-center justify-center mb-3">
                     <Smartphone className="w-6 h-6 text-emerald-600" />
                 </div>
@@ -527,7 +531,7 @@ export default function DashboardPage() {
       )}
 
       {/* Command Center */}
-      <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+      <section className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5">
           <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
               <div className="flex-[2] w-full">
                   <label className="text-xs font-semibold text-[#4c4480] uppercase tracking-wider mb-2 block">Find leads</label>
@@ -568,7 +572,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Money left on the table */}
-      <section className="bg-[#0B0B14] rounded-lg px-6 py-5 text-white">
+      <section className="bg-[#0B0B14] rounded-xl px-6 py-5 text-white">
           <div className="flex flex-wrap items-end gap-x-10 gap-y-4">
               <div>
                   <p className="text-xs font-semibold uppercase tracking-wider text-white/60">Est. pipeline</p>
@@ -617,14 +621,14 @@ export default function DashboardPage() {
             <p className="text-[#0B0B14]">
               <span className="font-bold capitalize">{job.stage || job.status}</span>
               {job.total ? <span className="tnum text-[#4c4480]"> — {job.done || 0}/{job.total}</span> : null}
-              <span className="text-[#4c4480]"> — Tavily is searching, then numbers get verified. No need to wait here.</span>
+              <span className="text-[#4c4480]"> — searching the web, then numbers get verified. No need to wait here.</span>
             </p>
         </div>
       )}
 
       {/* Recovery queue */}
       {recovery.length > 0 && (
-      <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+      <section className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-bold text-[#0B0B14]">Recovery queue</h2>
           <span className="tnum text-xs font-bold text-[#4c4480]">{recovery.length} waiting</span>
@@ -669,7 +673,7 @@ export default function DashboardPage() {
 
       {/* Board + rail: journey across, detail beside — no vertical kanban */}
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <section className="lg:col-span-2 bg-white border border-[#e4e1f5] rounded-lg overflow-hidden">
+        <section className="lg:col-span-2 bg-white border border-[#e4e1f5] rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 pt-4">
             <h2 className="text-base font-bold text-[#0B0B14]">Revenue journey</h2>
           </div>
@@ -691,16 +695,19 @@ export default function DashboardPage() {
           {/* Unified lead table */}
           <div className="border-t border-[#e4e1f5]">
             <div className="hidden md:grid grid-cols-[1fr_110px_130px] gap-3 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-[#a099b4] border-b border-[#e4e1f5]">
-              <span>Company</span><span>Source</span><span className="text-right">Action</span>
+              <span>Company</span><span>Found via</span><span className="text-right">Action</span>
             </div>
             <div className="divide-y divide-[#f1eefb] max-h-[460px] overflow-y-auto">
-              {stageLeads.map((p) => (
+              {hiddenNoNumber > 0 && (
+                <p className="text-[11px] text-[#a099b4] text-center py-2 bg-slate-50">{hiddenNoNumber} skipped — no number found, so nothing to approve.</p>
+              )}
+              {visibleLeads.map((p) => (
                 <div key={p.id} className="grid md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 px-5 py-3 items-center">
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="text-sm font-bold text-[#0B0B14] truncate">{p.company_name}</p>
                     {p.ai_muted && <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />}
                   </div>
-                  <p className="text-[11px] font-medium text-[#a099b4] truncate">{p.business_signals?.source || "SYSTEM"}</p>
+                  <p className="text-[11px] font-medium text-[#a099b4] truncate">{srcName(p.business_signals?.source)}</p>
                   <div className="md:text-right">
                     {activeStage === "review" ? (
                       p.public_phone ? (
@@ -720,7 +727,7 @@ export default function DashboardPage() {
                         <span className="text-[11px] font-bold text-[#a099b4] border border-dashed border-[#e4e1f5] px-3 py-1.5 rounded">no number</span>
                       )
                     ) : activeStage === "research" ? (
-                      <span className="inline-flex items-center gap-1.5 text-amber-600 text-xs font-bold"><Loader2 className="w-3 h-3 animate-spin" /> Scraping…</span>
+                      <span className="inline-flex items-center gap-1.5 text-amber-600 text-xs font-bold"><Loader2 className="w-3 h-3 animate-spin" /> Finding…</span>
                     ) : activeStage === "await" ? (
                       <span className="inline-flex items-center gap-1.5 text-[#a099b4] text-xs font-bold"><Clock className="w-3 h-3" /> Standby</span>
                     ) : activeStage === "won" ? (
@@ -731,14 +738,14 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-              {stageLeads.length === 0 && <p className="text-xs text-[#a099b4] text-center py-8">Nothing here — launch a campaign above.</p>}
+              {visibleLeads.length === 0 && <p className="text-xs text-[#a099b4] text-center py-8">{hiddenNoNumber > 0 ? "All found leads lack numbers — launch again or try another area." : "Nothing here — launch a campaign above."}</p>}
             </div>
           </div>
         </section>
 
         {/* Right rail: meetings + activity */}
         <aside className="space-y-6">
-          <section className="bg-[#0B0B14] rounded-lg p-5 text-white">
+          <section className="bg-[#0B0B14] rounded-xl p-5 text-white">
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4" />
               <h2 className="text-sm font-bold">Meetings booked</h2>
@@ -771,7 +778,7 @@ export default function DashboardPage() {
             )}
           </section>
 
-          <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+          <section className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5">
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#2E4BFF]" />
               <h2 className="text-sm font-bold text-[#0B0B14]">Agent status</h2>
@@ -798,7 +805,7 @@ export default function DashboardPage() {
           </section>
 
           {muted.length > 0 && (
-          <section className="bg-white border border-[#e4e1f5] rounded-lg p-5">
+          <section className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5">
             <h2 className="text-sm font-bold text-[#0B0B14]">AI paused chats</h2>
             <p className="text-xs text-[#4c4480] mt-1">You took over — resume when ready.</p>
             <div className="mt-3 space-y-2">
@@ -818,9 +825,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Business profile + industry templates */}
-      <section id="business" className="bg-white border border-[#e4e1f5] rounded-lg p-5 mt-6 scroll-mt-6">
+      <section id="business" className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5 mt-6 scroll-mt-6">
         <h2 className="text-base font-bold text-[#0B0B14]">Your business</h2>
-        <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices.</p>
+        <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices. Replies go out from <b>your own WhatsApp number</b> — no new SIM needed.</p>
         <div className="flex flex-wrap gap-2 mt-3">
           <span className="text-xs font-bold text-[#4c4480] self-center">Start from:</span>
           {(templates.length ? templates : [{ id: "dental", label: "Dental clinic" }, { id: "salon", label: "Salon & spa" }, { id: "real_estate", label: "Real estate" }, { id: "coaching", label: "Coaching" }, { id: "restaurant", label: "Restaurant" }]).map((t: any) => (
