@@ -164,6 +164,29 @@ class PairRequest(BaseModel):
     fresh: bool = False
 
 
+class RestoreRequest(BaseModel):
+    userId: str = ""
+    files: dict = {}
+
+
+@app.post("/api/whatsapp/restore")
+def wa_restore_proxy(request: RestoreRequest):
+    """Upload a home-linked WhatsApp session to the cloud engine (see wa-service)."""
+    if not request.userId or "creds.json" not in (request.files or {}):
+        raise HTTPException(status_code=422, detail="userId + files incl. creds.json required")
+    try:
+        r = _rq.post(f"{_WA_LOCAL}/api/whatsapp/restore",
+                     json={"userId": request.userId, "files": request.files}, timeout=120)
+        try:
+            return r.json()
+        except Exception:
+            raise HTTPException(status_code=r.status_code, detail=f"WA engine said {r.status_code}")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
+
+
 @app.post("/api/whatsapp/pair")
 def wa_pair_proxy(request: PairRequest):
     """Pairing-code login for phones that can't scan QR (mobile browsers).

@@ -198,6 +198,35 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     }
 });
 
+// Session restore: link via QR on a residential IP (home PC), then upload the
+// session files here so the cloud engine resumes the SAME login. WhatsApp
+// rejects fresh cloud-IP logins; resumed residential sessions keep running.
+// Body: { userId, files: { filename: base64 } } — must include creds.json.
+app.post('/api/whatsapp/restore', express.json({ limit: '25mb' }), async (req, res) => {
+    const userId = String(req.body?.userId || '').trim();
+    const files = req.body?.files || {};
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const names = Object.keys(files).filter((n) => /^[\w.\-]+$/.test(n) && !n.startsWith('.'));
+    if (!names.includes('creds.json')) return res.status(400).json({ error: 'files must include creds.json' });
+    if (names.length > 30) return res.status(400).json({ error: 'too many files' });
+    const dir = path.join(AUTH_ROOT, userId);
+    try {
+        const st = getRT(userId);
+        try { if (st.sock) { st.sock.ev.removeAllListeners(); st.sock.end(); } } catch (e) {}
+        st.sock = null; st.qr = null; st.connected = false;
+        fs.rmSync(dir, { recursive: true, force: true });
+        fs.mkdirSync(dir, { recursive: true });
+        for (const n of names) {
+            fs.writeFileSync(path.join(dir, n), Buffer.from(files[n], 'base64'));
+        }
+        console.log(`[BAILEYS] restored ${names.length} session files for ${userId}`);
+        connectUser(userId).catch((e) => console.log('[BAILEYS] connect fail', e.message));
+        return res.json({ ok: true, files: names.length });
+    } catch (e) {
+        return res.status(500).json({ error: String(e.message || e).slice(0, 200) });
+    }
+});
+
 app.get('/api/check', async (req, res) => {    const userId = req.query.userId || 'default_user';
     const number = (req.query.number || '').replace(/\D/g, '');
     if (!number) return res.status(400).json({ exists: false, error: 'missing number' });
