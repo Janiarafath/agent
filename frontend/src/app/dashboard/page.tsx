@@ -42,10 +42,11 @@ export default function DashboardPage() {
   const [waConnected, setWaConnected] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [modalSince, setModalSince] = useState(0);
-  useEffect(() => { if (showQRModal) { setModalSince(Date.now()); setPairCode(""); } }, [showQRModal]);
+  useEffect(() => { if (showQRModal) { setModalSince(Date.now()); setPairCode(""); setPairFor(""); setPairNote(""); } }, [showQRModal]);
   const [pairTab, setPairTab] = useState<"qr" | "code">("qr");
   const [pairPhone, setPairPhone] = useState("");
   const [pairNote, setPairNote] = useState("");
+  const [pairFor, setPairFor] = useState("");
   const [pairCode, setPairCode] = useState("");
   const [pairing, setPairing] = useState(false);
   const [meetings, setMeetings] = useState<any[]>([]);
@@ -468,7 +469,7 @@ export default function DashboardPage() {
                         }
                         const json = await res.json().catch(() => ({}));
                         if (json.alreadyConnected) { alert("Already linked!"); setShowQRModal(false); }
-                        else if (json.code) setPairCode(json.code);
+                        else if (json.code) { setPairCode(json.code); setPairFor(json.phone || digits); setPairNote(""); }
                         else if (res.status === 404) throw new Error("Pairing isn't live on the server yet (outdated backend). Use Scan-QR for now — or redeploy the backend, then retry.");
                         else if (res.status === 503) throw new Error("WhatsApp engine is starting. Wait ~10s and retry.");
                         else throw new Error(json.error || json.detail || `Server ${res.status}`);
@@ -482,8 +483,9 @@ export default function DashboardPage() {
                   {pairNote && <p className="text-[11px] font-semibold text-[#2E4BFF] mt-2 text-center">{pairNote}</p>}
                   {pairCode && (
                     <div className="mt-3 bg-[#0B0B14] rounded p-4 text-center">
-                      <p className="tnum text-3xl font-bold text-white tracking-[0.2em]">{pairCode}</p>
-                      <p className="text-[11px] text-white/60 mt-1">Type this in WhatsApp within a few minutes</p>
+                      <p className="text-[11px] font-bold text-amber-300">Code for +{pairFor} — must match the WhatsApp account on THIS phone (check in WhatsApp → Settings → profile)</p>
+                      <p className="tnum text-3xl font-bold text-white tracking-[0.2em] mt-1">{pairCode}</p>
+                      <p className="text-[11px] text-white/60 mt-1">Type it now — one use, expires in minutes. Expired? Tap Get code again.</p>
                     </div>
                   )}
                 </div>
