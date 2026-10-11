@@ -71,29 +71,32 @@ export default function DashboardPage() {
     return () => clearInterval(t);
   }, []);
 
+  // All data calls fail fast (15s) so a dead road never spins the page forever.
+  const apiGet = (u: string) => fetch(u, { signal: AbortSignal.timeout(15000) });
+
   const refreshAll = () => {
     if (!user) return;
-    fetch(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setData(data); setLoading(false); setLastUpdated(Date.now()); })
-      .catch((err) => { setError(err.message); setLoading(false); });
-    fetch(`${API_BASE}/api/meetings?user_id=${user.uid}`)
+      .catch((err) => { setError(err.name === "TimeoutError" ? "Server is taking too long (network road down?). Linking WhatsApp below still works." : err.message); setLoading(false); });
+    apiGet(`${API_BASE}/api/meetings?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setMeetings(data.meetings || []); })
       .catch(() => {});
-    fetch(`${API_BASE}/api/money?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/money?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setMoney(data); })
       .catch(() => {});
-    fetch(`${API_BASE}/api/recovery?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/recovery?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setRecovery(data.recovery || []); })
       .catch(() => {});
-    fetch(`${API_BASE}/api/muted?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/muted?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setMuted(data.muted || []); })
       .catch(() => {});
-    fetch(`${API_BASE}/api/jobs?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/jobs?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => {
         const jobs = data.jobs || [];
@@ -174,7 +177,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return;
-    fetch(`${API_BASE}/api/settings?user_id=${user.uid}`)
+    apiGet(`${API_BASE}/api/settings?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { if (data.admin_phone) setBossPhone(data.admin_phone); })
       .catch(() => {});
