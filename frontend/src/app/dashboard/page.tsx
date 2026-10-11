@@ -376,10 +376,26 @@ export default function DashboardPage() {
   );
 
   if (error) return (
-    <div className="p-8 max-w-xl mx-auto">
-        <div className="bg-[#fef2f2] border border-red-200 rounded-lg p-6">
-            <p className="text-sm font-bold text-red-700">Dashboard failed to load</p>
-            <p className="text-sm text-red-600 mt-1">{error}. Is the backend running?</p>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-5 md:space-y-6">
+        <div className="bg-[#fef2f2] border border-red-200 rounded-xl p-4 flex items-start gap-3">
+            <div>
+              <p className="text-sm font-bold text-red-700">Pipeline data failed to load</p>
+              <p className="text-xs text-red-600 mt-1">{error}. Linking WhatsApp below still works — your sender connection doesn't need pipeline data.</p>
+            </div>
+            <button onClick={() => window.location.reload()} className="ml-auto shrink-0 text-xs font-bold text-red-700 border border-red-300 rounded-lg px-3 py-1.5 hover:bg-red-100">Retry</button>
+        </div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+              <h1 className="text-2xl font-bold tracking-tight text-[#0B0B14]">Pipeline Overview</h1>
+              <p className="text-sm text-[#4c4480] mt-0.5">Link your sender below to get started.</p>
+          </div>
+          <button
+              onClick={() => !waConnected && setShowQRModal(true)}
+              className={`ui-press flex items-center gap-2 px-4 py-2 rounded border text-sm font-semibold ${waConnected ? 'border-emerald-200 bg-[#ecfdf5] text-emerald-700 cursor-default' : 'border-[#e4e1f5] bg-white hover:border-[#2E4BFF] text-[#0B0B14]'}`}
+          >
+              <Link2 className="w-4 h-4" />
+              {waConnected ? 'WhatsApp Linked' : 'Link WhatsApp'}
+          </button>
         </div>
     </div>
   );
