@@ -123,6 +123,7 @@ async function connectUser(userId) {
         }
         if (connection === 'open') {
             st.connected = true; st.qr = null; st.retry = 0;
+            st.logoutStreak = 0; st.needsRelink = false;
             console.log(`[BAILEYS] CONNECTED ${userId}`);
         }
         if (connection === 'close') {
@@ -138,6 +139,16 @@ async function connectUser(userId) {
                     console.log(`[BAILEYS] ${userId} pre-auth close (pairing=${!!st.pairing}) — reconnect, keep keys`);
                     st.retry = Math.min((st.retry || 0) + 1, 5);
                     setTimeout(() => connectUser(userId), (st.retry || 1) * 5000);
+                    return;
+                }
+                // Registered session rejected by WhatsApp: hammering re-logins
+                // gets the number flagged. Back off after 3 straight logouts.
+                st.logoutStreak = (st.logoutStreak || 0) + 1;
+                if (st.logoutStreak >= 3) {
+                    st.needsRelink = true;
+                    try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
+                    st.qr = null; st.sock = null;
+                    console.log(`[BAILEYS] ${userId} logged out x3 — STOPPED, needs fresh relink`);
                     return;
                 }
                 try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
@@ -186,6 +197,7 @@ app.get('/api/whatsapp/status', (req, res) => {
         qr: st.qr,
         diag: {
             hasSocket: !!st.sock,
+            needsRelink: !!st.needsRelink,
             lastCode: st.lastCode,
             secsSinceChange: Math.round((Date.now() - (st.lastChange || Date.now())) / 1000),
             retries: st.retry || 0,
@@ -211,6 +223,7 @@ app.post('/api/whatsapp/pair', express.json(), async (req, res) => {
     // first socket mid-request (perpetual "Connection Closed"). Refuse it.
     if (st.pairBusy) return res.status(429).json({ error: 'A code request is already running — wait 30s, then tap Get code ONCE and wait.' });
     st.pairBusy = true;
+    st.logoutStreak = 0; st.needsRelink = false; // explicit user retry — allow fresh attempts
     try {
     // Rebuild ONLY on evidence of death — never blindly, or rapid taps kill
     // each other's handshakes (perpetual "Connection Closed").
