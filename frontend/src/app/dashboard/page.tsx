@@ -113,9 +113,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!user) return;
     refreshAll();
-    const interval = setInterval(refreshAll, 3000);
+    // Data refreshes slowly (10s); sender status has its own fast lane.
+    const interval = setInterval(refreshAll, 10000);
     const onFocus = () => refreshAll();
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshAll(); });
