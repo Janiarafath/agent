@@ -253,7 +253,7 @@ app.post('/api/whatsapp/restore', express.json({ limit: '25mb' }), async (req, r
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const names = Object.keys(files).filter((n) => /^[\w.\-]+$/.test(n) && !n.startsWith('.'));
     if (!names.includes('creds.json')) return res.status(400).json({ error: 'files must include creds.json' });
-    if (names.length > 30) return res.status(400).json({ error: 'too many files' });
+    if (names.length > 80) return res.status(400).json({ error: 'too many files' });
     const dir = path.join(AUTH_ROOT, userId);
     try {
         const st = getRT(userId);

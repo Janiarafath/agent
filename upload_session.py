@@ -50,17 +50,29 @@ def main() -> int:
         return 1
     print(f"Uploading {len(files)} session files for {uid} -> {server} ...")
     body = json.dumps({"userId": uid, "files": files}).encode()
-    req = urllib.request.Request(server + "/api/whatsapp/restore", data=body,
-                                 headers={"Content-Type": "application/json"})
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            print("Server:", r.status, r.read().decode()[:200])
-    except Exception as e:
-        print("Upload FAILED:", str(e)[:300])
+    code, text = post(server, body)
+    if code == 400 and "too many files" in text and len(files) > 1:
+        # Old server cap: creds.json alone still resumes the login.
+        print("Server file cap hit — retrying with essential login file only ...")
+        body = json.dumps({"userId": uid, "files": {"creds.json": files["creds.json"]}}).encode()
+        code, text = post(server, body)
+    print("Server:", code, text[:200])
+    if code != 200:
+        print("Upload FAILED.")
         print("Is the new backend deployed (restore route live)? Redeploy, then re-run.")
         return 1
     print("Done. Open the live dashboard — WhatsApp should show Linked within ~30s.")
     return 0
+
+
+def post(server, body):
+    req = urllib.request.Request(server + "/api/whatsapp/restore", data=body,
+                                 headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return r.status, r.read().decode()
+    except Exception as e:
+        return 0, str(e)[:300]
 
 if __name__ == "__main__":
     raise SystemExit(main())
