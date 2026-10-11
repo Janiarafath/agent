@@ -215,6 +215,19 @@ export default function DashboardPage() {
     if (!waConnected) { alert("Please connect WhatsApp first!"); setShowQRModal(true); return; }
     setApprovingId(id);
     try {
+      // Live re-check: the header can be seconds stale on a flapping link.
+      try {
+        const st = await fetch(`${WHATSAPP_API}/api/whatsapp/status?userId=${user.uid}`, { signal: AbortSignal.timeout(12000) });
+        const sj = await st.json().catch(() => ({}));
+        if (!sj.connected) {
+          setWaConnected(false);
+          setShowQRModal(true);
+          throw new Error("Sender dropped just now — reconnecting. Wait ~20s, then approve again.");
+        }
+      } catch (e: any) {
+        if (e?.message?.includes("dropped just now")) throw e;
+        // status check itself failed — proceed; backend is the final judge.
+      }
       const res = await fetch(`${API_BASE}/api/approve/${id}?user_id=${user.uid}`, { method: "POST" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
