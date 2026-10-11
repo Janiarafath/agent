@@ -69,7 +69,7 @@ async function connectUser(userId) {
     const sock = makeWASocket({
         auth: state,
         version,
-        browser: ['GrowthPilot', 'Chrome', '1.0'],
+        browser: ['Windows', 'Chrome', '140.0'],
         syncFullHistory: false,
         markOnlineOnConnect: false,
         generateHighQualityLinkPreview: false,
