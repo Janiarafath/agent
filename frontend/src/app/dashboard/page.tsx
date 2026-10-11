@@ -79,7 +79,7 @@ export default function DashboardPage() {
     apiGet(`${API_BASE}/api/dashboard?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setData(data); setLoading(false); setLastUpdated(Date.now()); })
-      .catch((err) => { setError(err.name === "TimeoutError" ? "Server is taking too long (network road down?). Linking WhatsApp below still works." : err.message); setLoading(false); });
+      .catch((err) => { setError(err.name === "TimeoutError" ? "Server is taking too long (network road down?)." : err.message); setLoading(false); });
     apiGet(`${API_BASE}/api/meetings?user_id=${user.uid}`)
       .then((res) => res.json())
       .then((data) => { setMeetings(data.meetings || []); })
