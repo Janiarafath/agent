@@ -123,21 +123,31 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const prevWa = useRef(false);
+  const checkWaStatus = async () => {
+      if (!user) return;
+      try {
+          const res = await fetch(`${WHATSAPP_API}/api/whatsapp/status?userId=${user.uid}`);
+          const json = await res.json();
+          setWaConnected(json.connected);
+          if (json.qr && !json.connected) setQrCode(json.qr);
+          if (json.connected) {
+            setShowQRModal(false);
+            if (!prevWa.current) {
+              setToast("WhatsApp Linked — your sender is live. Time to get customers.");
+              setTimeout(() => setToast(""), 8000);
+            }
+          }
+          prevWa.current = !!json.connected;
+      } catch (e) {}
+  };
+
   useEffect(() => {
     if (!user) return;
-    const checkWaStatus = async () => {
-        try {
-            const res = await fetch(`${WHATSAPP_API}/api/whatsapp/status?userId=${user.uid}`);
-            const json = await res.json();
-            setWaConnected(json.connected);
-            if (json.qr && !json.connected) setQrCode(json.qr);
-            if (json.connected) setShowQRModal(false);
-        } catch (e) {}
-    };
     checkWaStatus();
-    const interval = setInterval(checkWaStatus, 3000);
+    const interval = setInterval(checkWaStatus, showQRModal ? 1500 : 3000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, showQRModal]);
 
   const triggerDiscovery = async () => {
     if (!user) return;
@@ -431,7 +441,9 @@ export default function DashboardPage() {
                     <Smartphone className="w-6 h-6 text-emerald-600" />
                 </div>
                 <h3 className="text-lg font-bold text-[#0B0B14] mb-1">Connect WhatsApp</h3>
+                <p className="text-[11px] font-bold text-[#a099b4] mb-3">Sender server: {WHATSAPP_API.includes("localhost") || WHATSAPP_API.includes("127.0.0.1") ? "this PC (local)" : "cloud"} · scan here = links here</p>
                 <p className="text-sm text-[#4c4480] text-center mb-4">On a phone? Use code — no second device needed.</p>
+                <p className="text-[11px] font-semibold text-emerald-600 text-center mb-3">Keep this open — the moment you scan or type, this screen flips to Linked by itself ✓</p>
                 <div className="flex bg-[#f6f5ff] rounded p-1 mb-4 w-full">
                   {(["qr", "code"] as const).map((t) => (
                     <button key={t} onClick={() => setPairTab(t)}
@@ -544,6 +556,12 @@ export default function DashboardPage() {
                 <button onClick={() => setShowQRModal(false)} className="mt-5 text-sm font-semibold text-[#4c4480] hover:text-[#0B0B14]">
                     Cancel
                 </button>
+                {modalSince > 0 && nowTick - modalSince > 45000 && (
+                  <button onClick={() => { checkWaStatus(); setModalSince(Date.now()); }}
+                    className="mt-2 text-[11px] font-semibold text-[#2E4BFF] hover:underline">
+                    Phone says linked but nothing happened? Force re-check — and make sure you scanned THIS screen's code (localhost QR links this PC, live-site QR links the cloud).
+                  </button>
+                )}
             </div>
         </div>
       )}
