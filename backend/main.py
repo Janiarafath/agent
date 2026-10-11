@@ -209,6 +209,16 @@ def wa_vault_list(db: Session = Depends(get_db)):
     return {"userIds": [r[0] for r in rows]}
 
 
+@app.get("/api/whatsapp/linklog")
+def wa_linklog_proxy(userId: str = "default_user"):
+    """Pairing handshake proof: what WHATSAPP answered (not just our app)."""
+    try:
+        r = _rq.get(f"{_WA_LOCAL}/api/whatsapp/linklog", params={"userId": userId}, timeout=20)
+        return r.json()
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"WA engine unreachable: {str(e)[:150]}")
+
+
 @app.post("/api/whatsapp/restore")
 def wa_restore_proxy(request: RestoreRequest):
     """Upload a home-linked WhatsApp session to the cloud engine (see wa-service)."""

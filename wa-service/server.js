@@ -11,6 +11,7 @@ const cors = require(NM + '/cors');
 const axios = require(NM + '/axios');
 const qrcode = require(NM + '/qrcode');
 const fs = require('fs');
+const P = require(NM + '/pino');
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require(NM + '/@whiskeysockets/baileys');
 
 const PORT = parseInt(process.env.WA_PORT || '3002', 10);
@@ -29,8 +30,33 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// Per-socket log sniffer: proves whether WHATSAPP (not just our app)
+// answered the pairing handshake. Ring buffer + flags, exposed via linklog.
+function makeSocketLogger(userId, st) {
+    st.linklog = st.linklog || [];
+    const stream = {
+        write(chunk) {
+            let line = '';
+            try {
+                const o = JSON.parse(String(chunk));
+                if (o.msg === 'pair success recv') st.pairDone = true;
+                const xml = o.xml || '';
+                if (o.msg === 'xml send' && xml.includes('companion_hello')) st.helloSent = true;
+                if (o.msg === 'recv xml' && xml.includes('link_code_companion_reg')) st.serverAnsweredHello = true;
+                line = `${o.msg || ''} ${String(xml).slice(0, 300)}`.slice(0, 320);
+            } catch (e) { line = String(chunk).slice(0, 320); }
+            st.linklog.push(line);
+            if (st.linklog.length > 120) st.linklog.splice(0, st.linklog.length - 120);
+            // still print important lines to stdout
+            if (/pair success|logged out|CONNECTED|pairing code|closed/i.test(line)) {
+                try { process.stdout.write(`[BAILEYS:${userId}] ${line}\n`); } catch (e) {}
+            }
+        },
+    };
+    return P({ level: process.env.WA_LOG_LEVEL || 'trace' }, stream);
+}
 // per-user runtime
-const rt = new Map(); // userId -> { sock, connected, qr, retry, jidCache }
+const rt = new Map(); // userId -> runtime state (see getRT defaults)
 function getRT(userId) {
     if (!rt.has(userId)) rt.set(userId, { sock: null, connected: false, qr: null, retry: 0, jidCache: {}, lastCode: null, lastChange: Date.now(), pairing: false });
     return rt.get(userId);
@@ -66,9 +92,11 @@ async function connectUser(userId) {
         } catch (e) { console.log('[BAILEYS] version fetch fail, using bundled'); }
     }
     const version = global._waVersion;
+    st.helloSent = false; st.serverAnsweredHello = false; st.pairDone = false; st.linklog = [];
     const sock = makeWASocket({
         auth: state,
         version,
+        logger: makeSocketLogger(userId, st),
         browser: ['Windows', 'Chrome', '10.0.22631'],
         syncFullHistory: false,
         markOnlineOnConnect: false,
@@ -270,6 +298,19 @@ app.post('/api/whatsapp/restore', express.json({ limit: '25mb' }), async (req, r
     } catch (e) {
         return res.status(500).json({ error: String(e.message || e).slice(0, 200) });
     }
+});
+
+// Pairing handshake proof: did WHATSAPP answer our hello? Did it complete?
+// Poll this after tapping Get code — settles "fake code" doubts with server frames.
+app.get('/api/whatsapp/linklog', (req, res) => {
+    const st = getRT(req.query.userId || 'default_user');
+    res.json({
+        helloSent: !!st.helloSent,
+        serverAnsweredHello: !!st.serverAnsweredHello,
+        pairDone: !!st.pairDone,
+        connected: !!st.connected,
+        lines: (st.linklog || []).slice(-25),
+    });
 });
 
 app.get('/api/check', async (req, res) => {    const userId = req.query.userId || 'default_user';
