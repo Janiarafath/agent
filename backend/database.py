@@ -12,6 +12,10 @@ if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 _connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+if "postgresql" in DATABASE_URL:
+    # Fail fast (10s) instead of hanging minutes on dead routes — the UI
+    # shows Retry instead of spinning forever.
+    _connect_args["connect_timeout"] = 10
 
 if "neon.tech" in DATABASE_URL:
     # Resilience: some ISP DNS returns IPv6-only answers for the pooler while
