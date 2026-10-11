@@ -138,7 +138,10 @@ async function connectUser(userId) {
                 if (st.pairing || !hadSession) {
                     console.log(`[BAILEYS] ${userId} pre-auth close (pairing=${!!st.pairing}) — reconnect, keep keys`);
                     st.retry = Math.min((st.retry || 0) + 1, 5);
-                    setTimeout(() => connectUser(userId), (st.retry || 1) * 5000);
+                    setTimeout(() => connectUser(userId).catch((e) => {
+                        console.log(`[BAILEYS] reconnect attempt failed ${userId}:`, e.message);
+                        setTimeout(() => connectUser(userId).catch(() => {}), 15000);
+                    }), (st.retry || 1) * 5000);
                     return;
                 }
                 // Registered session rejected by WhatsApp: hammering re-logins
@@ -156,16 +159,22 @@ async function connectUser(userId) {
                 console.log(`[BAILEYS] ${userId} logged out — rescan needed`);
                 return;
             }
-            // crash-proof: backoff reconnect (no crash, ever)
+            // crash-proof: backoff reconnect (no crash, ever). The .catch keeps
+            // this chain alive even if a rebuild attempt itself throws.
             st.retry = Math.min((st.retry || 0) + 1, 5);
             const wait = st.retry * 5000;
             console.log(`[BAILEYS] reconnect ${userId} in ${wait}ms`);
-            setTimeout(() => connectUser(userId), wait);
+            setTimeout(() => connectUser(userId).catch((e) => {
+                console.log(`[BAILEYS] reconnect attempt failed ${userId}:`, e.message);
+                st.retry = Math.min((st.retry || 0) + 1, 5);
+                setTimeout(() => connectUser(userId).catch(() => {}), (st.retry || 1) * 5000);
+            }), wait);
         }
     });
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
         for (const msg of messages || []) {
+            try {
             const jid = msg.key?.remoteJid || '';
             if (!jid || jid === 'status@broadcast') continue;
             const fromMe = !!msg.key?.fromMe;
@@ -184,6 +193,7 @@ async function connectUser(userId) {
             const digitsOnly = digits.replace(/\D/g, '');
             console.log(`[BAILEYS] inbound ${userId} from ${digitsOnly}: ${text.slice(0, 80)}`);
             await postInbound(userId, jid, false, text, senderPn);
+            } catch (e) { console.log(`[BAILEYS] msg skipped ${userId}:`, e.message); }
         }
     });
 }

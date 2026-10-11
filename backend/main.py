@@ -202,6 +202,13 @@ def wa_vault_fetch(user_id: str, db: Session = Depends(get_db)):
     return {"userId": user_id, "files": row.files}
 
 
+@app.get("/api/health")
+def health():
+    """Liveness with zero dependencies (no DB, no engine) — uptime monitors hit this."""
+    import time
+    return {"ok": True, "time": int(time.time())}
+
+
 @app.get("/api/whatsapp/vault")
 def wa_vault_list(db: Session = Depends(get_db)):
     """All userIds with session backups (engine boot resurrection)."""
