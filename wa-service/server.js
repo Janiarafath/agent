@@ -12,7 +12,7 @@ const axios = require(NM + '/axios');
 const qrcode = require(NM + '/qrcode');
 const fs = require('fs');
 const P = require(NM + '/pino');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require(NM + '/@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestWaWebVersion } = require(NM + '/@whiskeysockets/baileys');
 
 const PORT = parseInt(process.env.WA_PORT || '3002', 10);
 const BACKEND = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
@@ -81,14 +81,18 @@ async function connectUser(userId) {
     const dir = path.join(AUTH_ROOT, userId);
     fs.mkdirSync(dir, { recursive: true });
     const { state, saveCreds } = await useMultiFileAuthState(dir);
-    // Fetch WA version once per process (not per connect) — saves seconds on every reconnect.
+    // Fetch the version WHATSAPP itself expects (web.whatsapp.com/sw.js), once
+    // per process. The Baileys-repo version lags and WhatsApp silently refuses
+    // to COMPLETE links (QR or pairing) on stale versions — codes generate
+    // fine, phones say "couldn't link". (Upstream issue #2679.)
     if (!global._waVersion) {
         try {
             const v = await Promise.race([
-                fetchLatestBaileysVersion(),
-                new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 4000)),
+                fetchLatestWaWebVersion(),
+                new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000)),
             ]);
             global._waVersion = v.version;
+            console.log('[BAILEYS] WA web version', global._waVersion.join('.'));
         } catch (e) { console.log('[BAILEYS] version fetch fail, using bundled'); }
     }
     const version = global._waVersion;
