@@ -1,0 +1,95 @@
+[span] DashWin
+[a] Platform
+[a] Solutions
+[a] Customers
+[a] Resources
+[a] Sign in
+[a] Get a demo
+[p] Agentic AI for Revenue Teams
+[h1] You didn't hire enough sellers. Now you don't have to.
+[p] Automate pipeline generation, draft hyper-personalized outreach, and manage your deals with DashWin's AI-native revenue platform.
+[a] Get a demo
+[a] Take a product tour
+[p] Trusted by 6,000+ Top Revenue Teams Worldwide
+[h2] New Agentic AI Innovation Highlights
+[span] Discover Leads
+[span] Smart Draft
+[span] Verify Numbers
+[span] WhatsApp AI
+[span] Pipeline Sync
+[span] Auto-Booking
+[h3] DashWin ICP
+[p] Define your perfect customer and let DashWin's Agentic AI find them across the web. Automatically verify their WhatsApp numbers and draft hyper-personalized sequences to maximize engagement.
+[button] Read the release notes
+[a] See all DashWin Agentic AI capabilities →
+[p] Keri Malin
+[p] SVP of Sales, TechCorp
+[p] "DashWin generated 10x ROI in 3 months and completely filled our reps' calendars."
+[button] Read the story
+[p] Customer Story
+[h2] Amplitude reduced their tech stack and saved big.
+[p] "By consolidating on DashWin, we provided a single source of truth for our reps and saved over $500k in software licenses."
+[a] Read the Amplitude story
+[p] $500k+
+[p] Saved in 1 Year
+[p] By replacing point solutions with DashWin's unified platform.
+[p] "If you want to be effective... you use DashWin to manage the entire pipeline from finding leads to booking meetings."
+[p] Director of Sales
+[p] Mid-Market Company
+[a] Read the full report
+[p] after your sellers are out of the building on Friday, DashWin keeps working.
+[span] Generate pipeline 24/7.
+[button] Start for free
+[button] Get a demo
+[h2] One agentic AI platform for revenue teams.
+[p] Upgrade from manual execution to AI agent execution.
+[div] Automated Pipeline Generation
+[p] Find exact ICP matches across the web and verify their contact details instantly.
+[div] Contextual AI Outreach
+[div] WhatsApp AI Agent
+[div] Smart Meeting Booker
+[div] Full CRM Synchronization
+[div] Revenue Analytics
+[button] Explore the platform
+[h2] A Trusted Sales Platform
+[h3] Security
+[p] DashWin operates with SOC 2 Type II compliance and robust data encryption at every level.
+[a] Learn more
+[h3] Reliability
+[p] Built on enterprise-grade infrastructure with 99.99% guaranteed uptime for global teams.
+[a] Learn more
+[h3] Data Privacy
+[p] Full GDPR and CCPA compliance. Your proprietary sales data is never used to train global models.
+[a] Learn more
+[h2] DashWin Agentic AI Platform for Revenue Teams
+[p] Automate Pipeline Generation | Personalize Outreach | Close More Deals
+[button] Start for free
+[button] Get a demo
+[h4] Platform
+[a] Agentic Discovery
+[a] Smart Drafts
+[a] WhatsApp Verifier
+[a] Pipeline Analytics
+[a] Integrations
+[h4] Capabilities
+[a] Lead Generation
+[a] Account Based Sales
+[a] Sales Execution
+[a] Revenue Intelligence
+[a] Forecasting
+[h4] Sales Teams
+[a] SDRs & BDRs
+[a] Account Executives
+[a] Sales Leaders
+[a] Customer Success
+[a] About Us
+[a] Newsroom
+[a] Security
+[h4] Talk with us
+[p] Sales Chat
+[button] Start a conversation
+[p] Have questions about pricing or custom enterprise plans? Our team is ready to help.
+[a] Privacy Policy
+[a] Terms of Service
+[a] Cookie Settings
+[p] © 2026 DashWin Inc. All rights reserved.

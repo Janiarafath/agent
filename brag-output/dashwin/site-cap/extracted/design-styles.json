@@ -1,0 +1,229 @@
+{
+  "typography": [
+    {
+      "role": "display",
+      "fontFamily": "-apple-system",
+      "fontSize": "72px",
+      "fontWeight": "700",
+      "lineHeight": "79.2px",
+      "letterSpacing": "-1.8px",
+      "color": "#FFFFFF",
+      "sampleText": "You didn't hire enough sellers. Now you don't have to."
+    },
+    {
+      "role": "heading",
+      "fontFamily": "-apple-system",
+      "fontSize": "48px",
+      "fontWeight": "700",
+      "lineHeight": "60px",
+      "letterSpacing": "normal",
+      "color": "#FFFFFF",
+      "sampleText": "Amplitude reduced their tech stack and saved big."
+    },
+    {
+      "role": "heading-2",
+      "fontFamily": "-apple-system",
+      "fontSize": "36px",
+      "fontWeight": "700",
+      "lineHeight": "40px",
+      "letterSpacing": "normal",
+      "color": "#05001A",
+      "sampleText": "New Agentic AI Innovation Highlights"
+    },
+    {
+      "role": "heading-2",
+      "fontFamily": "-apple-system",
+      "fontSize": "30px",
+      "fontWeight": "700",
+      "lineHeight": "36px",
+      "letterSpacing": "normal",
+      "color": "#05001A",
+      "sampleText": "A Trusted Sales Platform"
+    },
+    {
+      "role": "heading-3",
+      "fontFamily": "-apple-system",
+      "fontSize": "24px",
+      "fontWeight": "700",
+      "lineHeight": "32px",
+      "letterSpacing": "normal",
+      "color": "#05001A",
+      "sampleText": "DashWin ICP"
+    },
+    {
+      "role": "heading-3",
+      "fontFamily": "-apple-system",
+      "fontSize": "20px",
+      "fontWeight": "700",
+      "lineHeight": "28px",
+      "letterSpacing": "normal",
+      "color": "#05001A",
+      "sampleText": "Security"
+    },
+    {
+      "role": "body",
+      "fontFamily": "-apple-system",
+      "fontSize": "20px",
+      "fontWeight": "400",
+      "lineHeight": "32.5px",
+      "letterSpacing": "normal",
+      "color": "oklab(0.929997 0.00164393 -0.0339362 / 0.8)",
+      "sampleText": "Automate pipeline generation, draft hyper-personalized outre"
+    },
+    {
+      "role": "heading-4",
+      "fontFamily": "-apple-system",
+      "fontSize": "18px",
+      "fontWeight": "700",
+      "lineHeight": "28px",
+      "letterSpacing": "normal",
+      "color": "#FFFFFF",
+      "sampleText": "Platform"
+    }
+  ],
+  "spacing": {
+    "observed": [
+      4,
+      8,
+      10,
+      12,
+      14,
+      16,
+      20,
+      24,
+      32,
+      40,
+      48,
+      64,
+      96
+    ],
+    "baseUnit": 8
+  },
+  "radius": [
+    "4px",
+    "8px"
+  ],
+  "shadows": [
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.1) 0px 1px 2px -1px",
+      "count": 4
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px",
+      "count": 2
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 20px 25px -5px, rgba(0, 0, 0, 0.1) 0px 8px 10px -6px",
+      "count": 1
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.05) 0px 2px 4px 0px inset",
+      "count": 1
+    },
+    {
+      "value": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, oklab(0.358994 0.0217642 -0.142331 / 0.2) 0px 25px 50px -12px",
+      "count": 1
+    }
+  ],
+  "buttons": [
+    {
+      "label": "Discover Leads",
+      "background": "lab(44.4948 43.9935 -87.1253 / 0.05)",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "#5951FF",
+      "padding": "0px",
+      "borderRadius": "8px",
+      "border": "2px solid rgb(89, 81, 255)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "height": "96px"
+    },
+    {
+      "label": "Smart Draft",
+      "background": "transparent",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "lab(48.0876 -2.03595 -16.5814)",
+      "padding": "0px",
+      "borderRadius": "8px",
+      "border": "2px solid rgba(0, 0, 0, 0)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "400",
+      "height": "96px"
+    },
+    {
+      "label": "Read the release notes",
+      "background": "#5951FF",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "#FFFFFF",
+      "padding": "10px 24px",
+      "borderRadius": "4px",
+      "border": "0px solid rgb(226, 232, 240)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "500",
+      "height": "44px"
+    },
+    {
+      "label": "Read the story",
+      "background": "#FFFFFF",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "#5951FF",
+      "padding": "10px 24px",
+      "borderRadius": "4px",
+      "border": "0px solid rgb(226, 232, 240)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "500",
+      "height": "44px"
+    },
+    {
+      "label": "Get a demo",
+      "background": "transparent",
+      "backgroundImage": "",
+      "backdropFilter": "",
+      "color": "#FFFFFF",
+      "padding": "10px 24px",
+      "borderRadius": "4px",
+      "border": "1px solid oklab(0.999994 0.0000455678 0.0000200868 / 0.3)",
+      "boxShadow": "none",
+      "fontSize": "16px",
+      "fontWeight": "500",
+      "height": "46px"
+    }
+  ],
+  "cards": [],
+  "nav": {
+    "label": "navigation",
+    "background": "transparent",
+    "backgroundImage": "",
+    "backdropFilter": "",
+    "color": "lab(7.78673 1.82345 -15.0537)",
+    "padding": "0px",
+    "borderRadius": "0px",
+    "border": "0px solid rgb(226, 232, 240)",
+    "boxShadow": "none",
+    "fontSize": "16px",
+    "fontWeight": "400",
+    "height": "80px"
+  },
+  "chips": [],
+  "statCells": [],
+  "tabs": [],
+  "backgrounds": [
+    {
+      "value": "radial-gradient(circle at 85% 15%, rgba(235, 190, 100, 0.15) 0%, rgba(0, 0, 0, 0) 40%), radial-gradient(circle at 15% 85%, rgba(89, 81, 255, 0.25) 0%, rgba(0, 0, 0, 0) 50%), radial-gradient(circle, rgba(89, 81, 255, 0.1) 0%, rgba(0, 0, 0, 0) 60%)",
+      "area": 1606200
+    },
+    {
+      "value": "linear-gradient(to right bottom in oklab, rgb(26, 11, 64) 0%, rgb(10, 0, 51) 100%)",
+      "area": 331840
+    }
+  ],
+  "glass": []
+}

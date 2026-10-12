@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: 'Lexend'; font-weight: 400; src: url('assets/fonts/08328e320c8f68d1-s.09tcljo7dct-o.woff2'); }
+      @font-face { font-family: 'Lexend'; font-weight: 500; src: url('assets/fonts/ce5b45ab00236ec9-s.0p_6i_-hvb5ly.woff2'); }
+      @font-face { font-family: 'Lexend'; font-weight: 800; src: url('assets/fonts/ca31d6821328a4e9-s.p.2h1t2m6r9t_36.woff2'); }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #050505; }
+      #root { width: 100%; height: 100%; position: relative; font-family: Lexend, "Segoe UI", ui-sans-serif, system-ui, sans-serif; }
+      .clip { position: absolute; inset: 0; width: 1920px; height: 1080px; background: #050505; }
+      .center { display: flex; align-items: center; justify-content: center; flex-direction: column; height: 100%; padding-bottom: 120px; }
+      .row { display: flex; gap: 80px; align-items: center; justify-content: center; height: 100%; padding-bottom: 110px; }
+      h1.hero { color: #fff; font-size: 96px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.08; }
+      .sub { color: rgba(255,255,255,.6); font-size: 38px; margin-top: 20px; }
+      .blue { color: #2E4BFF; }
+      .lockup { display: block; }
+      .caption { position: absolute; left: 0; right: 0; bottom: 44px; display: flex; justify-content: center; }
+      .caption span { background: rgba(255,255,255,.12); color: #fff; font-size: 32px; font-weight: 500; padding: 16px 36px; border-radius: 999px; max-width: 1600px; text-align: center; }
+      .phone { width: 560px; background: #101018; border-radius: 48px; padding: 40px 32px; border: 3px solid #26263a; }
+      .bubble { max-width: 440px; padding: 20px 26px; border-radius: 26px; font-size: 32px; margin: 14px 0; }
+      .bubble.them { background: #23233f; color: #fff; align-self: flex-start; }
+      .bubble.me { background: #2E4BFF; color: #fff; align-self: flex-end; margin-left: auto; }
+      .chatcol { display: flex; flex-direction: column; }
+      .time { color: rgba(255,255,255,.45); font-size: 26px; text-align: center; margin-bottom: 10px; }
+      .stamp { border-radius: 20px; padding: 22px 28px; color: #fff; font-size: 30px; font-weight: 800; margin-top: 18px; text-align: center; }
+      .stamp.red { background: #7f1d1d; border: 3px solid #ef4444; }
+      .ping { background: #064e3b; border: 3px solid #10b981; border-radius: 20px; padding: 22px 28px; color: #fff; font-size: 28px; font-weight: 800; margin-top: 18px; text-align: center; }
+      .card { background: #101018; border: 3px solid #26263a; border-radius: 28px; padding: 44px 56px; color: #fff; font-size: 52px; font-weight: 800; }
+      .card .small { display: block; font-size: 30px; font-weight: 400; color: rgba(255,255,255,.6); margin-top: 10px; }
+      .feat { display: flex; align-items: center; gap: 28px; background: #101018; border: 3px solid #26263a; border-radius: 24px; padding: 30px 44px; color: #fff; font-size: 46px; font-weight: 800; width: 900px; }
+      .feat .ico { width: 92px; height: 92px; border-radius: 22px; background: #2E4BFF; display: flex; align-items: center; justify-content: center; font-size: 48px; flex-shrink: 0; }
+      .cta { background: #2E4BFF; color: #fff; font-size: 40px; font-weight: 800; padding: 26px 64px; border-radius: 999px; margin-top: 36px; }
+      .site { color: rgba(255,255,255,.55); font-size: 32px; margin-top: 22px; }
+      .tick { color: #fff; font-size: 40px; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <div data-hf-id="hf-aopl" id="root" data-composition-id="main" data-start="0" data-duration="61" data-width="1920" data-height="1080">
+      <audio data-hf-id="hf-ae4d" id="music" data-start="0" data-duration="61" data-track-index="3" data-volume="0.2" src="assets/music.mp3"></audio>
+      <audio data-hf-id="hf-67u9" id="vo1" data-start="0.4" data-duration="1.5" src="assets/vo_s1.wav"></audio>
+      <audio data-hf-id="hf-2y01" id="vo2" data-start="2.9" data-duration="9.2" src="assets/vo_s2.wav"></audio>
+      <audio data-hf-id="hf-v61u" id="vo3" data-start="13.1" data-duration="5.3" src="assets/vo_s3.wav"></audio>
+      <audio data-hf-id="hf-6s19" id="vo4" data-start="19.4" data-duration="1.9" src="assets/vo_s4.wav"></audio>
+      <audio data-hf-id="hf-b88n" id="vo5" data-start="22.3" data-duration="8.1" src="assets/vo_s5.wav"></audio>
+      <audio data-hf-id="hf-uo3q" id="vo6" data-start="31.3" data-duration="14.1" src="assets/vo_s6.wav"></audio>
+      <audio data-hf-id="hf-bi3o" id="vo7" data-start="46.6" data-duration="3.6" src="assets/vo_s7.wav"></audio>
+      <audio data-hf-id="hf-1ii1" id="vo8" data-start="51.2" data-duration="8.2" src="assets/vo_s8.wav"></audio>
+
+      <!-- S1 logo sting 0-2.5 -->
+      <div data-hf-id="hf-9wgt" class="clip" id="s1" data-start="0" data-duration="2.5" data-track-index="0">
+        <div data-hf-id="hf-0oij" class="center">
+          <img data-hf-id="hf-tdt0" class="lockup" id="s1logo" src="assets/logo.svg" alt="DashWin" style="width:760px">
+          <p data-hf-id="hf-al00" class="sub" id="s1line">Your AI sales helper.</p>
+        </div>
+        <div data-hf-id="hf-gsc6" class="caption"><span data-hf-id="hf-1tr3">Introducing DashWin.</span></div>
+      </div>
+
+      <!-- S2 pain 2.5-12.7 -->
+      <div data-hf-id="hf-1dp3" class="clip" id="s2" data-start="2.5" data-duration="10.2" data-track-index="0">
+        <div data-hf-id="hf-thy4" class="row">
+          <div data-hf-id="hf-kda4" class="phone"><div data-hf-id="hf-wk1w" class="chatcol">
+            <div data-hf-id="hf-ggcb" class="time">11:47 PM</div>
+            <div data-hf-id="hf-on9x" class="bubble them" id="s2m1">price?</div>
+            <div data-hf-id="hf-icui" class="bubble them" id="s2m2">hello??</div>
+            <div data-hf-id="hf-ifr5" class="bubble them" id="s2m3">ok, buy other shop</div>
+            <div data-hf-id="hf-jas1" class="stamp red" id="s2stamp">NO REPLY ❌</div>
+          </div></div>
+          <div data-hf-id="hf-yeow">
+            <h1 data-hf-id="hf-y95u" class="hero" id="s2line">Leads go<br data-hf-id="hf-x5px"><span data-hf-id="hf-pjqt" class="blue">unanswered.</span></h1>
+            <p data-hf-id="hf-wbcm" class="tick" id="s2a">Nobody replies 😴</p>
+            <p data-hf-id="hf-72hi" class="tick" id="s2b">No follow-up 😢</p>
+            <p data-hf-id="hf-9yim" class="tick" id="s2c">Sale goes away 🚪</p>
+          </div>
+        </div>
+        <div data-hf-id="hf-0o2i" class="caption"><span data-hf-id="hf-0euq">Leads go unanswered. Follow-ups get forgotten.</span></div>
+      </div>
+
+      <!-- S3 cost 12.7-19 -->
+      <div data-hf-id="hf-pstv" class="clip" id="s3" data-start="12.7" data-duration="6.3" data-track-index="0">
+        <div data-hf-id="hf-xvll" class="center" style="gap:28px">
+          <h1 data-hf-id="hf-nltx" class="hero" id="s3line" style="text-align:center">Old way is hard.</h1>
+          <div data-hf-id="hf-cves" class="card" id="s3a">💲 Sales team = costly<span data-hf-id="hf-r7cj" class="small">big pay, every month</span></div>
+          <div data-hf-id="hf-o9x1" class="card" id="s3b">⏰ You reply all day = no time<span data-hf-id="hf-4epo" class="small">no time for real work</span></div>
+        </div>
+        <div data-hf-id="hf-12dj" class="caption"><span data-hf-id="hf-dhsw">Sales team is costly. Doing it alone takes all day.</span></div>
+      </div>
+
+      <!-- S4 why 19-21.9 -->
+      <div data-hf-id="hf-dq70" class="clip" id="s4" data-start="19" data-duration="2.9" data-track-index="0">
+        <div data-hf-id="hf-rdqz" class="center">
+          <img data-hf-id="hf-pyji" class="lockup" id="s4logo" src="assets/logo.svg" alt="DashWin" style="width:640px">
+          <h1 data-hf-id="hf-if43" class="hero" id="s4line" style="text-align:center;margin-top:30px;font-size:72px">That is why we built DashWin.</h1>
+        </div>
+      </div>
+
+      <!-- S5 features 21.9-30.9 -->
+      <div data-hf-id="hf-0ufb" class="clip" id="s5" data-start="21.9" data-duration="9" data-track-index="0">
+        <div data-hf-id="hf-szc5" class="center" style="gap:24px">
+          <h1 data-hf-id="hf-iylc" class="hero" id="s5line" style="font-size:80px">DashWin does the work.</h1>
+          <div data-hf-id="hf-n3fh" class="feat" id="s5a"><span data-hf-id="hf-5af3" class="ico">⚡</span>Replies in seconds</div>
+          <div data-hf-id="hf-r6ls" class="feat" id="s5b"><span data-hf-id="hf-4s4t" class="ico">🔄</span>Follows up alone</div>
+          <div data-hf-id="hf-xxex" class="feat" id="s5c"><span data-hf-id="hf-79ne" class="ico">📅</span>Books meetings</div>
+        </div>
+        <div data-hf-id="hf-5ino" class="caption"><span data-hf-id="hf-7lqe">Replies. Follows up. Books meetings. Less work for you.</span></div>
+      </div>
+
+      <!-- S6 example 30.9-46.2 -->
+      <div data-hf-id="hf-dyac" class="clip" id="s6" data-start="30.9" data-duration="15.3" data-track-index="0">
+        <div data-hf-id="hf-lt04" class="row">
+          <div data-hf-id="hf-3kj8" class="phone"><div data-hf-id="hf-y9q4" class="chatcol">
+            <div data-hf-id="hf-fu4n" class="time" id="s6night">11:47 PM 🌙 you sleep</div>
+            <div data-hf-id="hf-zf2q" class="bubble them" id="s6m1">What is the price?</div>
+            <div data-hf-id="hf-uats" class="bubble me" id="s6m2">Only Rs 499. Friday 2 PM ok?</div>
+            <div data-hf-id="hf-gy4n" class="bubble them" id="s6m3">Yes!</div>
+            <div data-hf-id="hf-9jkp" class="ping" id="s6ping">✔ BOOKED + Zoom link sent</div>
+          </div></div>
+          <div data-hf-id="hf-y7yw">
+            <h1 data-hf-id="hf-lsno" class="hero" id="s6line" style="font-size:80px">One example.<br data-hf-id="hf-rsrt"><span data-hf-id="hf-txbh" class="blue">Sale while<br data-hf-id="hf-szow">you sleep.</span></h1>
+          </div>
+        </div>
+        <div data-hf-id="hf-5wyp" class="caption"><span data-hf-id="hf-vc8h">Night: customer asks price. Morning: meeting booked.</span></div>
+      </div>
+
+      <!-- S7 handoff 46.2-50.8 -->
+      <div data-hf-id="hf-89t0" class="clip" id="s7" data-start="46.2" data-duration="4.6" data-track-index="0">
+        <div data-hf-id="hf-qzfy" class="center">
+          <h1 data-hf-id="hf-2n3c" class="hero" id="s7a" style="text-align:center">You run your business.</h1>
+          <h1 data-hf-id="hf-xhr4" class="hero" id="s7b" style="text-align:center;margin-top:16px"><span data-hf-id="hf-hc5y" class="blue">Chats become customers.</span></h1>
+        </div>
+        <div data-hf-id="hf-6b9q" class="caption"><span data-hf-id="hf-75zi">You run your business. DashWin turns chats into customers.</span></div>
+      </div>
+
+      <!-- S8 finale 50.8-61 -->
+      <div data-hf-id="hf-one3" class="clip" id="s8" data-start="50.8" data-duration="10.2" data-track-index="0">
+        <div data-hf-id="hf-ql4x" class="center">
+          <img data-hf-id="hf-gq4f" class="lockup" id="s8logo" src="assets/logo.svg" alt="DashWin" style="width:700px">
+          <h1 data-hf-id="hf-b60c" class="hero" id="s8line" style="text-align:center;margin-top:28px;font-size:64px">Less work. No missed leads. More sales.</h1>
+          <div data-hf-id="hf-rdem" class="cta" id="s8cta">Join the launch 🚀</div>
+          <p data-hf-id="hf-cy9b" class="site" id="s8site">Be one of our first users</p>
+        </div>
+        <div data-hf-id="hf-6pkr" class="caption"><span data-hf-id="hf-aswa">Meet DashWin. Your next sale starts here.</span></div>
+      </div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      const pop = (sel, at) => tl.fromTo(sel, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }, at);
+      pop("#s1logo", 0.1); pop("#s1line", 0.8);
+      pop("#s2m1", 2.9); pop("#s2m2", 4.5); pop("#s2m3", 6.5); pop("#s2stamp", 8.0);
+      pop("#s2line", 3.2); pop("#s2a", 4.6); pop("#s2b", 6.6); pop("#s2c", 8.6);
+      pop("#s3line", 12.9); pop("#s3a", 13.6); pop("#s3b", 14.9);
+      pop("#s4logo", 19.1); pop("#s4line", 19.5);
+      pop("#s5line", 22.1); pop("#s5a", 22.9); pop("#s5b", 24.5); pop("#s5c", 26.1);
+      pop("#s6night", 31.1); pop("#s6m1", 31.8); pop("#s6m2", 36.5); pop("#s6m3", 40.5); pop("#s6ping", 42.5); pop("#s6line", 33.0);
+      pop("#s7a", 46.4); pop("#s7b", 48.0);
+      pop("#s8logo", 51.0); pop("#s8line", 53.0); pop("#s8cta", 55.0); pop("#s8site", 56.5);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

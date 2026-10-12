@@ -1,0 +1,66 @@
+{
+  "files": [
+    {
+      "file": "08328e320c8f68d1-s.09tcljo7dct-o.woff2",
+      "family": "Lexend",
+      "rawFamily": "Lexend",
+      "subfamily": "Regular",
+      "postscript": "Lexend-Regular",
+      "weight": 400,
+      "style": "normal",
+      "variationAxes": [
+        "wght"
+      ],
+      "identified": true,
+      "isIcon": false
+    },
+    {
+      "file": "ca31d6821328a4e9-s.p.2h1t2m6r9t_36.woff2",
+      "family": "Lexend",
+      "rawFamily": "Lexend",
+      "subfamily": "Regular",
+      "postscript": "Lexend-Regular",
+      "weight": 400,
+      "style": "normal",
+      "variationAxes": [
+        "wght"
+      ],
+      "identified": true,
+      "isIcon": false
+    },
+    {
+      "file": "ce5b45ab00236ec9-s.0p_6i_-hvb5ly.woff2",
+      "family": "Lexend",
+      "rawFamily": "Lexend",
+      "subfamily": "Regular",
+      "postscript": "Lexend-Regular",
+      "weight": 400,
+      "style": "normal",
+      "variationAxes": [
+        "wght"
+      ],
+      "identified": true,
+      "isIcon": false
+    }
+  ],
+  "families": [
+    {
+      "family": "Lexend",
+      "weights": [
+        400
+      ],
+      "variable": true,
+      "fileCount": 3,
+      "files": [
+        "08328e320c8f68d1-s.09tcljo7dct-o.woff2",
+        "ca31d6821328a4e9-s.p.2h1t2m6r9t_36.woff2",
+        "ce5b45ab00236ec9-s.0p_6i_-hvb5ly.woff2"
+      ]
+    }
+  ],
+  "unidentified": [],
+  "meta": {
+    "generatedAt": "2026-10-08T11:32:51.569Z",
+    "tool": "fontkit"
+  }
+}
