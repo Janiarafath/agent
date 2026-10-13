@@ -27,6 +27,14 @@ export default function Login() {
   useEffect(() => {
     if (!user || claimed.current) return;
     claimed.current = true;
+    const isPasswordUser = (user.providerData || []).some((p: any) => p?.providerId === "password");
+    if (isPasswordUser && !user.emailVerified) {
+      setNotice("Verify your email first — we sent you a link (check inbox + spam). Then sign in again.");
+      logout();
+      claimed.current = false;
+      setBusy(false);
+      return;
+    }
     // First touch claims an early-access seat (15 pioneers, then waitlist).
     fetch(`${API_BASE}/api/settings`, {
       method: "POST", headers: { "Content-Type": "application/json" },

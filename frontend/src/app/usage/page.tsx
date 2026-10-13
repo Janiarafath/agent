@@ -31,6 +31,11 @@ export default function UsagePage() {
 
   const today = data?.days?.[0];
   const pct = (u: number, l: number) => (l || 0) <= 0 ? 0 : Math.min(100, Math.round(((u || 0) / l) * 100));
+  // Free shows the Starter taste (0/25, 0/200) so the value is visible;
+  // enforcement stays locked until upgrade.
+  const isFree = (data?.plan || "free") === "free";
+  const dispMsg = isFree ? 25 : (data?.messages_limit ?? 0);
+  const dispAi = isFree ? 200 : (data?.ai_limit ?? 0);
 
   return (
     <div className="bg-[#f4f5fa] min-h-screen">
@@ -56,27 +61,28 @@ export default function UsagePage() {
             </div>
             {loading ? <Loader2 className="w-5 h-5 animate-spin mt-6 text-white/60" /> : (
               <div className="relative mt-6 space-y-5">
-                {[["Messages sent today", today?.messages ?? 0, data?.messages_limit ?? 0],
-                  ["AI replies today", today?.ai ?? 0, data?.ai_limit ?? 0]].map(([l, u, lim]: any) => (
-                  lim === 0 ? (
-                    <div key={l} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-3">
-                      <span className="text-sm text-white/70 font-semibold">{l}</span>
-                      <span className="text-xs font-bold text-amber-300">Locked on Free</span>
+                {[["Messages sent today", today?.messages ?? 0, dispMsg],
+                  ["AI replies today", today?.ai ?? 0, dispAi]].map(([l, u, lim]: any) => (
+                  <div key={l}>
+                    <div className="flex justify-between text-sm font-semibold"><span className="text-white/80">{l}</span><span className="tnum text-white">{u} / {lim}</span></div>
+                    <div className="h-2.5 bg-white/15 rounded-full mt-2 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#8B93FF] via-[#2E4BFF] to-[#22d3ee] rounded-full transition-all" style={{ width: `${pct(u, lim)}%` }} />
                     </div>
-                  ) : (
-                    <div key={l}>
-                      <div className="flex justify-between text-sm font-semibold"><span className="text-white/80">{l}</span><span className="tnum text-white">{u} / {lim}</span></div>
-                      <div className="h-2.5 bg-white/15 rounded-full mt-2 overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-[#8B93FF] via-[#2E4BFF] to-[#22d3ee] rounded-full transition-all" style={{ width: `${pct(u, lim)}%` }} />
-                      </div>
-                    </div>
-                  )
+                  </div>
                 ))}
+                {isFree && (
+                  <p className="text-[11px] text-white/50">Free plan is look-only — these are the Starter allowances (₹299 ≈ $3.50) waiting below ↓</p>
+                )}
               </div>
             )}
             <div className="relative mt-6 rounded-xl border border-white/15 bg-white/5 p-4">
-              <p className="text-sm font-extrabold text-white flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-300" /> Need a paid plan?</p>
-              <p className="text-xs text-white/60 mt-1">Upgrades are personal for now — message us and we switch you on.</p>
+              <p className="text-sm font-extrabold text-white flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-300" /> Starter unlocks sending — ₹299/mo (~$3.50)</p>
+              <ul className="text-xs text-white/65 mt-2 space-y-1.5">
+                <li>✓ 30 sends/day + 200 AI replies/day</li>
+                <li>✓ Auto follow-ups + Zoom links + HOT LEAD pings</li>
+                <li>✓ Cheaper than one missed customer</li>
+              </ul>
+              <p className="text-xs text-white/60 mt-3">Upgrades are personal for now — message us and we switch you on same-day.</p>
               <div className="flex flex-col sm:flex-row gap-2 mt-3">
                 <a href="mailto:ajaniarafath@gmail.com?subject=DashWin%20paid%20plan" className="ui-press inline-flex items-center justify-center gap-2 bg-white text-[#0B0B14] text-xs font-bold px-4 py-2.5 rounded-lg">
                   <Mail className="w-3.5 h-3.5" /> ajaniarafath@gmail.com

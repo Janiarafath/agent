@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, CheckCircle2, Smartphone, LogOut, ArrowLeft, ShieldCheck, Wallet } from "lucide-react";
+import { Loader2, CheckCircle2, Smartphone, LogOut, ArrowLeft, ShieldCheck, Wallet, User } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +14,9 @@ export default function SettingsPage() {
   const [bossPhone, setBossPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [myName, setMyName] = useState("");
+  const [myPhone, setMyPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -21,7 +24,33 @@ export default function SettingsPage() {
       .then((r) => r.json()).catch(() => ({}))
       .then((s) => { if (s.admin_phone) setBossPhone(s.admin_phone); setLoading(false); })
       .catch(() => setLoading(false));
+    fetch(`${API_BASE}/api/account?user_id=${user.uid}`)
+      .then((r) => r.json()).catch(() => ({}))
+      .then((a) => { if (a.name) setMyName(a.name); if (a.phone) setMyPhone(a.phone); })
+      .catch(() => {});
   }, [user]);
+
+  const saveAccount = async () => {
+    if (!user) return;
+    const digits = myPhone.replace(/\D/g, "");
+    if (myPhone && (digits.length < 10 || digits.length > 15)) {
+      alert("Contact phone: digits with country code preferred (e.g. 919042500863).");
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/account`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.uid, name: myName, phone: digits })
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
+      alert("Profile saved.");
+    } catch (err: any) {
+      alert(`Save failed: ${err?.message || err}`);
+    }
+    setSavingProfile(false);
+  };
 
   const save = async () => {
     if (!user) return;
@@ -120,6 +149,31 @@ export default function SettingsPage() {
               </div>
             )}
             <p className="text-[11px] text-[#a099b4] mt-3">Full international digits WITH country code — e.g. <b>919042500863</b>. Bare 10-digit numbers are rejected.</p>
+          </section>
+
+          {/* Profile: name + contact phone */}
+          <section className="bg-white border border-[#e4e1f5] rounded-2xl shadow-sm p-5 md:p-6">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-[#2E4BFF]/10 flex items-center justify-center">
+                <User className="w-4 h-4 text-[#2E4BFF]" />
+              </span>
+              <div>
+                <h2 className="text-base font-extrabold text-[#0B0B14]">Your details</h2>
+                <p className="text-[11px] text-[#4c4480]">Name + contact phone — so we (and the AI) know who you are</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3 mt-4">
+              <label className="block text-xs font-semibold text-[#4c4480]">Your name
+                <input value={myName} onChange={(e) => setMyName(e.target.value)} placeholder="e.g. Jani Arafath"
+                  className="mt-1 w-full bg-white border border-[#e4e1f5] rounded-xl px-3 py-2.5 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
+              <label className="block text-xs font-semibold text-[#4c4480]">Contact phone
+                <input value={myPhone} onChange={(e) => setMyPhone(e.target.value)} placeholder="919042500863" inputMode="tel"
+                  className="mt-1 w-full bg-white border border-[#e4e1f5] rounded-xl px-3 py-2.5 text-sm text-[#0B0B14] focus:outline-none focus:border-[#2E4BFF]" /></label>
+            </div>
+            <button onClick={saveAccount} disabled={savingProfile}
+              className="ui-press mt-4 bg-[#0B0B14] hover:bg-black disabled:opacity-50 text-white text-sm font-bold px-5 py-2.5 rounded-xl flex items-center gap-2">
+              {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400" />} Save details
+            </button>
           </section>
 
           {/* Security */}
