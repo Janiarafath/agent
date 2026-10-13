@@ -183,7 +183,14 @@ async function connectUser(userId) {
             const senderPn = msg.key?.senderPn || '';
             const text = textOf(msg);
             const digits = jid.split('@')[0].split(':')[0];
-            if (digits) st.jidCache[digits] = jid; // learn real JID (lid-safe)
+            if (digits) {
+                st.jidCache[digits] = jid; // learn real JID (lid-safe)
+                // Cap: an ever-growing cache OOMs the container over weeks.
+                const keys = Object.keys(st.jidCache);
+                if (keys.length > 2000) {
+                    for (const k of keys.slice(0, 500)) delete st.jidCache[k];
+                }
+            }
             if (fromMe) {
                 console.log(`[BAILEYS] HUMAN TAKEOVER ${userId} on ${jid}`);
                 await postInbound(userId, jid, true, text, senderPn);
