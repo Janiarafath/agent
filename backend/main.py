@@ -66,9 +66,17 @@ def auto_discover(request: AutoDiscoveryRequest, background_tasks: BackgroundTas
         out["job_id"] = jid
     return out
 
+def need_seat(db: Session, user_id: str):
+    """Closed-beta gate for expensive actions. No seat = 403."""
+    from backend import plans as _plans
+    if not _plans.has_seat(db, user_id):
+        raise HTTPException(status_code=403, detail="Early access required — sign in with an invited Google account.")
+
+
 @app.post("/api/trigger-discovery")
-def trigger_discovery(request: DiscoveryRequest, background_tasks: BackgroundTasks):
+def trigger_discovery(request: DiscoveryRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Allows the Next.js Dashboard to instantly force a Discovery Run with a custom query"""
+    need_seat(db, request.user_id)
     # Pass the query and user_id to the background job
     background_tasks.add_task(run_autonomous_discovery, request.query, request.user_id)
     return {"status": f"Discovery Queued for: {request.query}"}
@@ -85,6 +93,7 @@ def trigger_followups(background_tasks: BackgroundTasks):
 @app.post("/api/approve/{prospect_id}")
 def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_db)):
     """Approves a drafted message and sends it via WhatsApp (guarded, capped, logged)"""
+    need_seat(db, user_id)
     from backend.outreach_queue import can_send, log_message
     prospect = db.query(models.Prospect).filter(models.Prospect.id == prospect_id, models.Prospect.user_id == user_id).first()
     if not prospect:
@@ -245,7 +254,13 @@ def wa_restore_proxy(request: RestoreRequest):
 
 
 @app.post("/api/whatsapp/pair")
-def wa_pair_proxy(request: PairRequest):
+def wa_pair_proxy(request: PairRequest, db: Session = Depends(get_db)):
+    """Pairing-code login for phones that can't scan QR (mobile browsers).
+    Phone must be full international digits WITH country code, e.g.
+    919876543210 (IN), 971501234567 (AE), 966551234567 (SA)."""
+    need_seat(db, request.userId)
+    import re
+    digits = re.sub(r"\D", "", request.phone or "")
     """Pairing-code login for phones that can't scan QR (mobile browsers).
     Phone must be full international digits WITH country code, e.g.
     919876543210 (IN), 971501234567 (AE), 966551234567 (SA)."""
@@ -292,12 +307,17 @@ class SettingsRequest(BaseModel):
     user_id: str = "default_user"
     admin_phone: str | None = None  # None = leave untouched
     plan: str | None = None  # None = leave untouched
+    email: str | None = None  # first touch claims an early-access seat
 
 
 @app.post("/api/settings")
 def save_settings(request: SettingsRequest, db: Session = Depends(get_db)):
     """Save owner settings from dashboard (boss WhatsApp number, plan)."""
     from backend import plans as _plans
+    # Closed beta: claiming a seat happens on first touch.
+    ok, msg = _plans.claim_seat(db, request.user_id, request.email or "")
+    if not ok:
+        raise HTTPException(status_code=403, detail=msg)
     s = db.query(models.UserSettings).filter(models.UserSettings.user_id == request.user_id).first()
     if not s:
         s = models.UserSettings(user_id=request.user_id, admin_phone="", plan="free")
@@ -493,8 +513,9 @@ def approve_recovery(draft_id: int, user_id: str, db: Session = Depends(get_db))
 
 
 @app.post("/api/trigger-recovery")
-def trigger_recovery(user_id: str, background_tasks: BackgroundTasks):
+def trigger_recovery(user_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Queue a recovery scan (detect + score + draft). Results land as pending."""
+    need_seat(db, user_id)
     from backend.scheduler import run_recovery_scan
     background_tasks.add_task(run_recovery_scan, user_id)
     return {"status": f"Recovery scan queued for {user_id}"}

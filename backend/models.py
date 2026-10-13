@@ -178,3 +178,12 @@ class WaSession(Base):
     user_id = Column(String, primary_key=True)
     files = Column(JSON, default=dict)  # { filename: base64 }
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class EarlyAccess(Base):
+    """Closed beta seats: one row per admitted user. First MAX_USERS rows are
+    auto-admitted; beyond that only ALLOWLIST_EMAILS. No row = locked out."""
+    __tablename__ = "early_access"
+
+    user_id = Column(String, primary_key=True)
+    email = Column(String, default="", index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
