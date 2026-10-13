@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export const ClientLayoutWrapper = ({ children }: { children: React.ReactNode }) => {
     const { user, loading } = useAuth();
     const pathname = usePathname();
-    const inApp = pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+    const inApp = pathname === "/dashboard" || pathname.startsWith("/dashboard/") || pathname === "/usage" || pathname === "/settings";
 
     if (loading) return (
         <div className="min-h-screen bg-white flex items-center justify-center">

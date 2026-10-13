@@ -139,10 +139,6 @@ export default function Landing() {
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full blur-[140px] pointer-events-none" style={{ background: `${BLUE}33` }} />
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 relative grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div className="text-center lg:text-left">
-            <motion.p variants={rise} initial="hidden" animate="show"
-              className="inline-flex items-center gap-2 text-[11px] md:text-xs font-bold tracking-[0.18em] uppercase border border-white/15 bg-white/5 rounded-full px-4 py-2 mb-6 text-white/80">
-              <Zap className="w-3.5 h-3.5" style={{ color: BLUE }} /> WhatsApp AI · for local business
-            </motion.p>
             <motion.h1 variants={rise} initial="hidden" animate="show" custom={1}
               className="text-4xl sm:text-5xl xl:text-6xl font-bold tracking-tight leading-[1.08] mb-5">
               Missed chats are costing you sales.{" "}
@@ -382,8 +378,8 @@ export default function Landing() {
             <div className="absolute -top-24 -left-16 w-80 h-80 rounded-full blur-[110px] pointer-events-none animate-drift-a" style={{ background: `${BLUE}55` }} />
             <div className="absolute -bottom-28 -right-16 w-80 h-80 rounded-full bg-fuchsia-600/25 blur-[120px] pointer-events-none animate-drift-b" />
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[520px] h-px" style={{ background: "linear-gradient(90deg, transparent, #2E4BFF, transparent)" }} />
-            <div className="flex justify-center mb-6 relative animate-floaty">
-              <DashWinLogo dark size={72} />
+            <div className="flex justify-center mb-6 relative">
+              <p className="text-xs font-bold tracking-[0.22em] uppercase text-white/50">Win your first customer with us</p>
             </div>
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-3 relative tracking-tight">Meet DashWin.</h2>
             <p className="text-white/60 mb-8 relative text-base md:text-lg">Less manual work. Fewer missed leads. More opportunities.</p>

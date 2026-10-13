@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Settings, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, ChevronLeft, ChevronRight, Wallet } from "lucide-react";
 import { DashWinLogo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
@@ -14,6 +14,7 @@ export const Sidebar = () => {
 
     const navItems = [
         { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+        { name: "Usage", href: "/usage", icon: Wallet },
         { name: "Settings", href: "/settings", icon: Settings },
     ];
 
