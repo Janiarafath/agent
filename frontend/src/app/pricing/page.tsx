@@ -55,7 +55,7 @@ export default function Pricing() {
               price: "₹299",
               period: "per month",
               features: [
-                "30 sends / day",
+                "25 sends / day",
                 "200 AI replies / day",
                 "Auto follow-ups",
                 "Zoom meeting links",

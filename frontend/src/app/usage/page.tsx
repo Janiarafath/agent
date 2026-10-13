@@ -78,7 +78,7 @@ export default function UsagePage() {
             <div className="relative mt-6 rounded-xl border border-white/15 bg-white/5 p-4">
               <p className="text-sm font-extrabold text-white flex items-center gap-2"><Sparkles className="w-4 h-4 text-amber-300" /> Starter unlocks sending — ₹299/mo (~$3.50)</p>
               <ul className="text-xs text-white/65 mt-2 space-y-1.5">
-                <li>✓ 30 sends/day + 200 AI replies/day</li>
+                <li>✓ 25 sends/day + 200 AI replies/day</li>
                 <li>✓ Auto follow-ups + Zoom links + HOT LEAD pings</li>
                 <li>✓ Cheaper than one missed customer</li>
               </ul>

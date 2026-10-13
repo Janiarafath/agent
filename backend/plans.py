@@ -11,7 +11,7 @@ KOLKATA = ZoneInfo("Asia/Kolkata")
 
 TIERS = {
     "free":    {"price_inr": 0,   "messages_per_day": 0,    "ai_calls_per_day": 0},
-    "starter": {"price_inr": 299, "messages_per_day": 30,   "ai_calls_per_day": 200},
+    "starter": {"price_inr": 299, "messages_per_day": 25,   "ai_calls_per_day": 200},
     "growth":  {"price_inr": 599, "messages_per_day": 600,  "ai_calls_per_day": 3000},
     "pro":     {"price_inr": 999, "messages_per_day": 2000, "ai_calls_per_day": 10000},
 }
