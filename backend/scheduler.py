@@ -233,7 +233,7 @@ def run_autonomous_followups():
             if not ok:
                 print(f"[FOLLOW-UP ENGINE] skip {p.company_name}: {reason}")
                 continue
-            send_whatsapp_message(p.public_phone, draft, p.user_id or "default_user")
+            send_whatsapp_message(p.public_phone, draft, p.user_id or "default_user", human=True)
             _log(db, p.id, "OUTBOUND", draft, "SENT")
             _plansf.bump(db, p.user_id or "default_user", "messages")
             

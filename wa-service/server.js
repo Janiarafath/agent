@@ -364,7 +364,7 @@ app.get('/api/check', async (req, res) => {    const userId = req.query.userId |
 });
 
 app.post('/api/send', async (req, res) => {
-    const { to, text, user_id } = req.body || {};
+    const { to, text, user_id, human } = req.body || {};
     const userId = user_id || 'default_user';
     const st = getRT(userId);
     if (!st.sock || !st.connected) return res.status(400).json({ status: 'error', error: `WhatsApp not connected for user ${userId} - scan QR first` });
@@ -382,7 +382,15 @@ app.post('/api/send', async (req, res) => {
                 st.jidCache[digits] = jid;
             }
         }
-        console.log(`[BAILEYS] ${userId} -> ${jid}`);
+        if (human) {
+            // Act like a person: show "typing…", pause like reading/thinking,
+            // then send. Bots blast instantly; humans don't.
+            try { await st.sock.sendPresenceUpdate('composing', jid); } catch (e) {}
+            const waitMs = 12000 + Math.floor(Math.random() * 16000);
+            await new Promise((r) => setTimeout(r, waitMs));
+            try { await st.sock.sendPresenceUpdate('paused', jid); } catch (e) {}
+        }
+        console.log(`[BAILEYS] ${userId} -> ${jid}${human ? ' (humanized)' : ''}`);
         await st.sock.sendMessage(jid, { text: String(text || '') });
         res.json({ status: 'sent', jid });
     } catch (e) { console.error('[BAILEYS] send fail', e.message); res.status(500).json({ status: 'error', error: String(e.message || e).slice(0, 300) }); }

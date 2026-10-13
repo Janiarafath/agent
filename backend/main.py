@@ -948,8 +948,9 @@ async def receive_baileys(request: Request, db: Session = Depends(get_db)):
                 ai_reply = process_message(text, sender_phone, db, user_id)
 
             from backend.whatsapp_provider import send_whatsapp_message
-            # Send to the full JID (LID-safe), not bare digits
-            result = send_whatsapp_message(remote_jid, ai_reply, user_id)
+            # Send to the full JID (LID-safe), not bare digits.
+            # human=True: AI replies arrive like a person (typing + pause).
+            result = send_whatsapp_message(remote_jid, ai_reply, user_id, human=True)
             if prospect:
                 try:
                     ok = isinstance(result, dict) and result.get("status") == "sent"
