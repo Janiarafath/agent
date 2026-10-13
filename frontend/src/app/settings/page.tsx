@@ -121,8 +121,21 @@ export default function SettingsPage() {
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-[#2E4BFF]" />
               <h2 className="text-base font-bold text-[#0B0B14]">Account</h2>
+              <span className="ml-auto text-[11px] font-bold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full">Google sign-in · no password needed</span>
             </div>
-            <p className="text-sm text-[#4c4480] mt-2 break-all">{user.email}</p>
+            <div className="flex items-center gap-3 mt-3">
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" className="w-11 h-11 rounded-full border border-[#e4e1f5]" />
+              ) : (
+                <div className="w-11 h-11 rounded-full bg-[#2E4BFF]/10 text-[#2E4BFF] font-bold flex items-center justify-center text-lg">
+                  {(user.displayName || user.email || "D")[0].toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-[#0B0B14] truncate">{user.displayName || "DashWin user"}</p>
+                <p className="text-xs text-[#4c4480] truncate">{user.email}</p>
+              </div>
+            </div>
             <button onClick={async () => { await logout(); router.replace("/"); }}
               className="ui-press mt-4 inline-flex items-center gap-2 border border-red-200 text-red-600 hover:bg-red-50 text-sm font-bold px-4 py-2 rounded-lg">
               <LogOut className="w-4 h-4" /> Sign out
@@ -164,12 +177,19 @@ export default function SettingsPage() {
             <div className="mt-5 space-y-4 text-xs">
               {[["Messages today", usage?.messages_used, usage?.messages_limit],
                 ["AI replies today", usage?.ai_used, usage?.ai_limit]].map(([l, u, lim]: any) => (
+                lim === 0 ? (
+                  <div key={l} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg px-3 py-2.5">
+                    <span className="text-white/70 font-semibold">{l}</span>
+                    <Link href="/pricing" className="text-[11px] font-bold text-amber-300 hover:underline">Locked on Free — unlock →</Link>
+                  </div>
+                ) : (
                 <div key={l}>
                   <div className="flex justify-between text-white/70 font-semibold"><span>{l}</span><span className="tnum">{u || 0} / {lim || 0}</span></div>
                   <div className="h-2 bg-white/15 rounded-full mt-1.5 overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#8B93FF] to-[#2E4BFF] rounded-full transition-all" style={{ width: `${pct(u, lim)}%` }} />
                   </div>
                 </div>
+                )
               ))}
             </div>
           )}

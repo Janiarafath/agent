@@ -496,7 +496,7 @@ export default function DashboardPage() {
                 <div className="w-full">
                   <p className="text-xs text-[#4c4480] text-center mb-3">Enter YOUR WhatsApp number <b>with country code</b> (no + or spaces), get a code, type it in WhatsApp → Linked devices → <b>Link with phone number</b>.</p>
                   <p className="text-[11px] text-[#a099b4] text-center mb-3">India 91 → <b>919876543210</b> · UAE 971 → <b>971501234567</b> · Saudi 966 → <b>966551234567</b> · US 1 → <b>12025550134</b></p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
                     <input value={pairPhone} onChange={(e) => setPairPhone(e.target.value)} placeholder="919876543210" inputMode="tel" autoComplete="tel"
                       className="flex-1 border border-[#e4e1f5] rounded px-3 py-2 text-sm focus:outline-none focus:border-[#2E4BFF]" />
                     <button disabled={pairing} onClick={async () => {
@@ -662,17 +662,17 @@ export default function DashboardPage() {
               </div>
               <div className="flex gap-2">
                   <button onClick={saveBossPhone} disabled={savingBoss} title="Save boss alerts number"
-                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-11 px-4 rounded-lg border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center justify-center gap-2">
                       {savingBoss ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                       Alerts
                   </button>
                   <button onClick={triggerFollowups} disabled={isFollowup}
-                      className="ui-press h-[42px] px-4 rounded border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-11 px-4 rounded-lg border border-[#e4e1f5] bg-white text-[#0B0B14] text-sm font-semibold hover:bg-[#f6f5ff] disabled:opacity-50 flex items-center justify-center gap-2">
                       {isFollowup ? <Loader2 className="w-4 h-4 animate-spin" /> : <Clock className="w-4 h-4 text-[#a099b4]" />}
                       Follow-ups
                   </button>
                   <button onClick={triggerDiscovery} disabled={isTriggering}
-                      className="ui-press h-[42px] px-5 rounded bg-[#2E4BFF] text-white text-sm font-semibold hover:bg-[#1D33D6] disabled:opacity-50 flex items-center gap-2">
+                      className="ui-press h-11 px-5 rounded-lg bg-[#2E4BFF] text-white text-sm font-semibold hover:bg-[#1D33D6] disabled:opacity-50 flex items-center justify-center gap-2 sm:min-w-[130px]">
                       {isTriggering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                       Launch
                   </button>
@@ -803,6 +803,13 @@ export default function DashboardPage() {
           </div>
           {/* Unified lead table */}
           <div className="border-t border-[#e4e1f5]">
+            <p className="px-5 pt-3 text-[11px] font-medium text-[#a099b4]">
+              {activeStage === "review" && "Review each draft, then Approve — nothing sends without your tap."}
+              {activeStage === "research" && "DashWin is finding businesses and checking numbers."}
+              {activeStage === "queue" && "Fresh finds waiting to be researched."}
+              {activeStage === "await" && "Sent — waiting for replies. Follow-ups run themselves."}
+              {activeStage === "won" && "Replied or interested — open the chat and close."}
+            </p>
             <div className="hidden md:grid grid-cols-[1fr_110px_130px] gap-3 px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-[#a099b4] border-b border-[#e4e1f5]">
               <span>Company</span><span>Found via</span><span className="text-right">Action</span>
             </div>

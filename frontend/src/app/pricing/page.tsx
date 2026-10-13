@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CheckCircle2, X } from "lucide-react";
+import { DashWinLogo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 
 export default function Pricing() {
@@ -14,10 +15,7 @@ export default function Pricing() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0e1a]/70 backdrop-blur-md border-b border-[rgba(255,255,255,0.08)]">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-sans font-bold text-xl tracking-tight text-white flex items-center gap-2">
-              <span className="w-8 h-8 rounded bg-[#3b82f6] text-white flex items-center justify-center text-lg">D</span>
-              DashWin
-            </span>
+            <DashWinLogo dark size={30} />
           </Link>
           <Link href="/" className="text-[15px] font-semibold text-[#94a3b8] hover:text-white flex items-center gap-2 transition-colors">
             <X className="w-5 h-5" /> Close
@@ -28,60 +26,70 @@ export default function Pricing() {
       <section className="max-w-7xl mx-auto px-6 pt-20 pb-24 relative z-10">
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6">
-            Transparent pricing for revenue teams
+            Simple pricing for local business
           </h1>
           <p className="text-lg text-[#94a3b8]">
-            Scale your pipeline and close more deals with the AI platform built for the enterprise.
+            Look around free. Pay only when DashWin sends and earns.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 items-center">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
           {[
-            { 
-              name: "Standard", 
-              desc: "For growing teams building their pipeline.",
-              price: "$99",
-              period: "per user/month",
+            {
+              name: "Free",
+              desc: "Look around. No sending.",
+              price: "₹0",
+              period: "forever",
               features: [
-                "Basic AI email drafting",
-                "CRM Integration (Salesforce, HubSpot)",
-                "Standard analytics dashboard",
-                "Up to 1,000 active contacts",
-                "Email support"
+                "Find + verify leads",
+                "0 sends / day",
+                "0 AI replies / day",
+                "Live pipeline view",
               ],
-              cta: "Start Free Trial",
+              cta: "Start free",
               primary: false
             },
-            { 
-              name: "Professional", 
-              desc: "For scaling teams that need advanced automation.",
-              price: "$149",
-              period: "per user/month",
+            {
+              name: "Starter",
+              desc: "Your first sales helper.",
+              price: "₹299",
+              period: "per month",
               features: [
-                "Everything in Standard",
-                "Advanced Agentic AI workflows",
-                "Meeting scheduling & Zoom integration",
-                "Conversation intelligence (basic)",
-                "Up to 10,000 active contacts",
-                "Priority support"
+                "30 sends / day",
+                "200 AI replies / day",
+                "Auto follow-ups",
+                "Zoom meeting links",
+                "HOT LEAD pings",
               ],
-              cta: "Get Started",
+              cta: "Pick Starter",
               primary: true
             },
-            { 
-              name: "Enterprise", 
-              desc: "For large organizations requiring security and scale.",
-              price: "Custom",
-              period: "billed annually",
+            {
+              name: "Growth",
+              desc: "Shops doing real volume.",
+              price: "₹599",
+              period: "per month",
               features: [
-                "Everything in Professional",
-                "Full autonomous modes",
-                "Advanced forecasting & coaching",
-                "Custom reporting & API access",
-                "SSO & advanced security (SOC2)",
-                "Dedicated Customer Success Manager"
+                "Everything in Starter",
+                "600 sends / day",
+                "3,000 AI replies / day",
+                "Recovery queue",
               ],
-              cta: "Contact Sales",
+              cta: "Pick Growth",
+              primary: false
+            },
+            {
+              name: "Pro",
+              desc: "Chains and power sellers.",
+              price: "₹999",
+              period: "per month",
+              features: [
+                "Everything in Growth",
+                "2,000 sends / day",
+                "10,000 AI replies / day",
+                "Priority support",
+              ],
+              cta: "Pick Pro",
               primary: false
             },
           ].map((plan, i) => (
