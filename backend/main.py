@@ -303,7 +303,10 @@ def save_settings(request: SettingsRequest, db: Session = Depends(get_db)):
         s = models.UserSettings(user_id=request.user_id, admin_phone="", plan="free")
         db.add(s)
     if request.admin_phone is not None:
-        s.admin_phone = "".join(filter(str.isdigit, request.admin_phone or ""))
+        _digits = "".join(filter(str.isdigit, request.admin_phone or ""))
+        if _digits and (len(_digits) < 11 or len(_digits) > 15):
+            raise HTTPException(status_code=422, detail="Boss number must include country code (11-15 digits), e.g. 919042500863 — bare 10-digit numbers can't receive alerts.")
+        s.admin_phone = _digits
     if (request.plan or "") in _plans.TIERS:
         s.plan = request.plan
     db.commit()
