@@ -99,6 +99,59 @@ def sent_today_count(db: Session, user_id: str) -> int:
     return n
 
 
+def sent_last_hour_count(db: Session, user_id: str) -> int:
+    """OUTBOUND WhatsApp sends by this user in the last 60 minutes.
+    Joined via prospect so multi-tenant counts stay per-user."""
+    from datetime import timedelta
+    cutoff = datetime.now(RIYADH) - timedelta(hours=1)
+    try:
+        rows = db.query(models.Message).join(
+            models.Prospect,
+            models.Message.prospect_id == models.Prospect.id).filter(
+            models.Message.channel == "WHATSAPP",
+            models.Message.direction == "OUTBOUND",
+            models.Prospect.user_id == user_id).all()
+    except Exception:
+        return 0
+    n = 0
+    for m in rows:
+        ts = m.timestamp
+        if ts is None:
+            continue
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=RIYADH)
+        if ts.astimezone(RIYADH) >= cutoff:
+            n += 1
+    return n
+
+
+def warmup_cap(db: Session, user_id: str) -> int | None:
+    """New senders ramp up (anti-ban): days 0-2 -> 5/day, days 3-6 -> 12/day.
+    WARMUP_OFF=1 disables. Returns None when fully warmed."""
+    import os as _os
+    if _os.getenv("WARMUP_OFF", "0") == "1":
+        return None
+    try:
+        row = db.query(models.EarlyAccess).filter(
+            models.EarlyAccess.user_id == user_id).first()
+        if not row or not row.created_at:
+            return 5  # unknown age: be safe
+        ts = row.created_at
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=RIYADH)
+        age_days = (datetime.now(RIYADH) - ts.astimezone(RIYADH)).days
+        if age_days < 3:
+            return 5
+        if age_days < 7:
+            return 12
+        return None
+    except Exception:
+        return None
+
+
+HOURLY_CAP_DEFAULT = 6
+
+
 def in_work_hours(now: datetime | None = None, location: str = "") -> bool:
     tz = get_tz_for_location(location)
     now = now or datetime.now(tz)
@@ -125,6 +178,13 @@ def can_send(db: Session, prospect: models.Prospect, user_id: str, cap: int = DA
             return False, "outside-work-hours-recipient"
     if sent_today_count(db, user_id) >= cap:
         return False, f"daily-cap-{cap}-reached"
+    import os as _os2
+    hourly = int(_os2.getenv("HOURLY_CAP", str(HOURLY_CAP_DEFAULT)) or HOURLY_CAP_DEFAULT)
+    if sent_last_hour_count(db, user_id) >= hourly:
+        return False, f"hourly-cap-{hourly}-reached"
+    wcap = warmup_cap(db, user_id)
+    if wcap is not None and sent_today_count(db, user_id) >= wcap:
+        return False, f"warmup-cap-{wcap}-reached"
     return True, "ok"
 
 

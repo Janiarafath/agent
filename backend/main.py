@@ -105,6 +105,10 @@ def approve_outreach(prospect_id: int, user_id: str, db: Session = Depends(get_d
             raise HTTPException(status_code=429, detail=f"Daily cap reached ({reason}). Try tomorrow.")
         if reason == "outside-work-hours-recipient":
             raise HTTPException(status_code=403, detail="Outside recipient work hours (8am-8pm). Try again 8am-8pm IST.")
+        if reason.startswith("hourly-cap"):
+            raise HTTPException(status_code=429, detail="Slow down for safety: max 6 sends/hour so WhatsApp stays happy. Try again in a bit.")
+        if reason.startswith("warmup-cap"):
+            raise HTTPException(status_code=429, detail="New-sender warmup: this few per day for the first week keeps your number safe. It rises automatically.")
         raise HTTPException(status_code=403, detail=f"Blocked: {reason}")
     from backend import plans as _plans
     ok, reason = _plans.check_limit(db, user_id, "messages")
