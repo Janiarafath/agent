@@ -187,3 +187,12 @@ class EarlyAccess(Base):
     user_id = Column(String, primary_key=True)
     email = Column(String, default="", index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class AccountProfile(Base):
+    """Personal profile: display name + contact phone (NOT auth — Firebase owns auth)."""
+    __tablename__ = "account_profiles"
+
+    user_id = Column(String, primary_key=True)
+    name = Column(String, default="")
+    phone = Column(String, default="")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

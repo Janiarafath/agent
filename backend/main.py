@@ -376,6 +376,38 @@ class ProfileRequest(BaseModel):
     avg_deal_inr: int | None = None
 
 
+@app.get("/api/account")
+def get_account(user_id: str, db: Session = Depends(get_db)):
+    """Personal profile (name + phone)."""
+    p = db.query(models.AccountProfile).filter(
+        models.AccountProfile.user_id == user_id).first()
+    return {"name": (p.name if p and p.name else ""),
+            "phone": (p.phone if p and p.phone else "")}
+
+
+class AccountRequest(BaseModel):
+    user_id: str = "default_user"
+    name: str = ""
+    phone: str = ""
+
+
+@app.post("/api/account")
+def save_account(request: AccountRequest, db: Session = Depends(get_db)):
+    """Save personal profile. Phone optional, digits only, stored for admin contact."""
+    from backend import plans as _plans
+    if not _plans.has_seat(db, request.user_id):
+        raise HTTPException(status_code=403, detail="Early access required.")
+    p = db.query(models.AccountProfile).filter(
+        models.AccountProfile.user_id == request.user_id).first()
+    if not p:
+        p = models.AccountProfile(user_id=request.user_id)
+        db.add(p)
+    p.name = (request.name or "")[:100]
+    p.phone = "".join(filter(str.isdigit, request.phone or ""))[:15]
+    db.commit()
+    return {"status": "saved", "name": p.name, "phone": p.phone}
+
+
 @app.get("/api/profile")
 def get_profile(user_id: str, db: Session = Depends(get_db)):
     """Business profile the AI receptionist answers from."""
