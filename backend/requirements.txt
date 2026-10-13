@@ -1,17 +1,15 @@
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
-psycopg[binary]
-pydantic
-pydantic-settings
-celery
-redis
-litellm
-langgraph
-requests
-phonenumbers
-groq
-google-generativeai
-tavily-python
-apscheduler
+# Pinned: every Docker build installs EXACTLY this (no surprise breakage).
+# Verified working together locally. Update only deliberately.
+fastapi==0.141.1
+uvicorn==0.54.0
+sqlalchemy==2.1.1
+psycopg[binary]==3.3.6
+pydantic==2.13.5
+pydantic-settings==2.15.0
+python-dotenv==1.2.3
+requests==2.34.2
+phonenumbers==9.0.40
+groq==1.7.0
+google-generativeai==0.7.2
+tavily-python==0.8.4
+apscheduler==3.11.3

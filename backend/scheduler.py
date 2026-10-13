@@ -156,8 +156,13 @@ def run_lead_pipeline(category: str = "dentists", city: str = "Riyadh, Saudi Ara
         db.close()
 
 
-# Start the scheduler
-scheduler = BackgroundScheduler()
+# Start the scheduler. No overlapping runs, ever: after downtime, missed
+# triggers coalesce into one (no 5x catch-up storms, no duplicate sends).
+scheduler = BackgroundScheduler(job_defaults={
+    "coalesce": True,
+    "max_instances": 1,
+    "misfire_grace_time": 3600,
+})
 
 def run_recovery_scan(user_id: str = "default_user"):
     """Daily missed-lead recovery: detect + score + draft (owner approves)."""
