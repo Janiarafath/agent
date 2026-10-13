@@ -17,7 +17,7 @@ TIERS = {
 }
 
 # Closed beta: first seats free-for-all, then allowlist only.
-MAX_USERS = int(os.getenv("MAX_USERS", "25") or 25)
+MAX_USERS = int(os.getenv("MAX_USERS", "15") or 15)
 ALLOWLIST = {e.strip().lower() for e in os.getenv("ALLOWLIST_EMAILS", "").split(",") if e.strip()}
 
 

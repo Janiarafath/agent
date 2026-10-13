@@ -328,6 +328,8 @@ def save_settings(request: SettingsRequest, db: Session = Depends(get_db)):
             raise HTTPException(status_code=422, detail="Boss number must include country code (11-15 digits), e.g. 919042500863 — bare 10-digit numbers can't receive alerts.")
         s.admin_phone = _digits
     if (request.plan or "") in _plans.TIERS:
+        if request.plan != "free" and (s.plan or "free") != request.plan:
+            raise HTTPException(status_code=403, detail="Paid plans are handled personally — contact ajaniarafath@gmail.com or +91 8148647818 and we'll upgrade you.")
         s.plan = request.plan
     db.commit()
     db.refresh(s)
@@ -340,6 +342,25 @@ def get_usage(user_id: str, db: Session = Depends(get_db)):
     """Plan + meter readings for the dashboard."""
     from backend import plans as _plans
     return _plans.usage_summary(db, user_id)
+
+
+@app.get("/api/usage/history")
+def usage_history(user_id: str, days: int = 14, db: Session = Depends(get_db)):
+    """AI ledger: per-day usage rows for the tracker page (newest first)."""
+    from backend import plans as _plans
+    days = max(1, min(days, 60))
+    rows = (db.query(models.Usage)
+            .filter(models.Usage.user_id == user_id)
+            .order_by(models.Usage.day.desc())
+            .limit(days).all())
+    lim = _plans.TIERS.get(_plans.get_plan(db, user_id), _plans.TIERS["free"])
+    return {"plan": _plans.get_plan(db, user_id),
+            "price_inr": lim["price_inr"],
+            "messages_limit": lim["messages_per_day"],
+            "ai_limit": lim["ai_calls_per_day"],
+            "seats_left": _plans.seats_left(db),
+            "days": [{"day": r.day, "messages": r.messages_out or 0,
+                      "ai": r.ai_calls or 0} for r in rows]}
 
 
 class ProfileRequest(BaseModel):
