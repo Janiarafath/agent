@@ -943,7 +943,7 @@ export default function DashboardPage() {
       {/* Business profile + industry templates */}
       <section id="business" className="bg-white border border-[#e4e1f5] rounded-xl shadow-sm p-5 mt-6 scroll-mt-6">
         <h2 className="text-base font-bold text-[#0B0B14]">Your business</h2>
-        <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices. Replies go out from <b>your own WhatsApp number</b> — no new SIM needed.</p>
+        <p className="text-xs text-[#4c4480] mt-1">The AI receptionist answers ONLY from this. Empty pricing = it never quotes prices. Replies go out from <b>your own WhatsApp number</b> — no new SIM needed. Tip: high-volume senders use a dedicated business SIM, never their personal daily number.</p>
         <div className="flex flex-wrap gap-2 mt-3">
           <span className="text-xs font-bold text-[#4c4480] self-center">Start from:</span>
           {(templates.length ? templates : [{ id: "dental", label: "Dental clinic" }, { id: "salon", label: "Salon & spa" }, { id: "real_estate", label: "Real estate" }, { id: "coaching", label: "Coaching" }, { id: "restaurant", label: "Restaurant" }]).map((t: any) => (
