@@ -196,11 +196,16 @@ export default function DashboardPage() {
 
   const saveBossPhone = async () => {
     if (!user) return;
+    const digits = bossPhone.replace(/\D/g, "");
+    if (digits && (digits.length < 11 || digits.length > 15)) {
+      alert("Boss number must include the country code (11-15 digits) — e.g. 919042500863. Bare 10-digit numbers can't receive alerts.");
+      return;
+    }
     setSavingBoss(true);
     try {
       const res = await fetch(`${API_BASE}/api/settings`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.uid, admin_phone: bossPhone })
+        body: JSON.stringify({ user_id: user.uid, admin_phone: digits })
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.detail || `Server ${res.status}`);
@@ -806,7 +811,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] text-[#a099b4] text-center py-2 bg-slate-50">{hiddenNoNumber} skipped — no number found, so nothing to approve.</p>
               )}
               {visibleLeads.map((p) => (
-                <div key={p.id} className="grid md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 px-5 py-3 items-center">
+                <div key={p.id} className="grid md:grid-cols-[1fr_110px_130px] gap-2 md:gap-3 px-5 py-3 items-center hover:bg-slate-50 transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <p className="text-sm font-bold text-[#0B0B14] truncate">{p.company_name}</p>
                     {p.ai_muted && <ShieldAlert className="w-3.5 h-3.5 text-red-500 shrink-0" />}

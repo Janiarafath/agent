@@ -42,8 +42,8 @@ export default function SettingsPage() {
   const save = async () => {
     if (!user) return;
     const digits = bossPhone.replace(/\D/g, "");
-    if (digits && (digits.length < 10 || digits.length > 15)) {
-      alert("Boss number must be full international digits WITH country code — e.g. 919876543210.");
+    if (digits && (digits.length < 11 || digits.length > 15)) {
+      alert("Boss number must include the country code (11-15 digits) — e.g. 919042500863. Bare 10-digit numbers can't receive alerts.");
       return;
     }
     setSaving(true);
@@ -92,6 +92,7 @@ export default function SettingsPage() {
   const pct = (u: number, l: number) => Math.min(100, Math.round(((u || 0) / Math.max(1, l || 1)) * 100));
 
   return (
+    <div className="bg-[#f4f5fa] min-h-screen">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-5 md:space-y-6">
       <Link href="/dashboard" className="ui-press inline-flex items-center gap-2 border border-[#e4e1f5] bg-white hover:border-[#2E4BFF] text-[#0B0B14] text-sm font-semibold px-4 py-2 rounded-lg shadow-sm">
         <ArrowLeft className="w-4 h-4" /> Back to dashboard
@@ -176,15 +177,17 @@ export default function SettingsPage() {
             {["free", "starter", "growth", "pro"].map((p) => (
               <button key={p} onClick={() => changePlan(p)} disabled={savingPlan || planSel === p}
                 className={`ui-press text-xs font-bold px-4 py-2 rounded-lg transition-all ${planSel === p ? "bg-white text-[#0B0B14]" : "border border-white/30 text-white hover:bg-white/10 disabled:opacity-50"}`}>
-                {p[0].toUpperCase() + p.slice(1)}
+                {planSel === p ? `✓ ${p[0].toUpperCase() + p.slice(1)}` : p[0].toUpperCase() + p.slice(1)}
               </button>
             ))}
           </div>
           <Link href="/pricing" className="inline-flex items-center gap-1.5 mt-5 text-xs font-bold text-white underline underline-offset-4 hover:text-white/80">
             <Wallet className="w-3.5 h-3.5" /> Compare plans →
           </Link>
+          <p className="text-[11px] text-white/40 mt-3">Meters reset every midnight IST.</p>
         </section>
       </div>
+    </div>
     </div>
   );
 }

@@ -172,17 +172,19 @@ export default function Landing() {
               <span className="inline-flex items-center gap-1.5"><Check className="w-4 h-4 text-emerald-400" /> Works while you sleep</span>
             </motion.div>
           </div>
-          <motion.div variants={rise} initial="hidden" animate="show" custom={2} className="relative lg:px-10">
+          <motion.div variants={rise} initial="hidden" animate="show" custom={2} className="relative lg:px-2">
             <div className="transition-transform duration-300 hover:scale-[1.02]">
               <HeroPhone />
             </div>
-            <div className="mt-4 lg:absolute lg:left-0 lg:top-10 z-10 bg-white text-slate-900 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-3 lg:max-w-[220px]">
-              <span className="text-2xl">🔥</span>
-              <p className="text-xs font-bold leading-snug">HOT LEAD booked + Zoom link sent to your phone</p>
-            </div>
-            <div className="mt-3 lg:absolute lg:right-0 lg:bottom-12 z-10 text-white rounded-xl shadow-2xl px-4 py-3 lg:max-w-[200px]" style={{ background: BLUE }}>
-              <p className="text-2xl font-bold">~60s</p>
-              <p className="text-xs font-semibold opacity-90">First reply, asleep or not</p>
+            <div className="grid sm:grid-cols-2 gap-3 mt-4 max-w-sm mx-auto">
+              <div className="bg-white text-slate-900 rounded-xl shadow-2xl px-4 py-3 flex items-center gap-3">
+                <span className="text-2xl">🔥</span>
+                <p className="text-xs font-bold leading-snug">HOT LEAD booked + Zoom link sent to your phone</p>
+              </div>
+              <div className="text-white rounded-xl shadow-2xl px-4 py-3" style={{ background: BLUE }}>
+                <p className="text-2xl font-bold">~60s</p>
+                <p className="text-xs font-semibold opacity-90">First reply, asleep or not</p>
+              </div>
             </div>
           </motion.div>
         </div>
