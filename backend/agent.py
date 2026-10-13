@@ -205,7 +205,7 @@ def admin_agent(user_message: str, db, user_id: str = "default_user") -> str:
             
             tavily_key = os.getenv("TAVILY_API_KEY")
             if not tavily_key:
-                return "Boss, my search is blocked! Please add TAVILY_API_KEY to Render Environment Variables."
+                return "Boss, my search is blocked! Please add TAVILY_API_KEY to the server's environment variables (Cloud Run → Variables & Secrets, then redeploy)."
                 
             from tavily import TavilyClient
             tavily = TavilyClient(api_key=tavily_key)
