@@ -173,7 +173,10 @@ def can_send(db: Session, prospect: models.Prospect, user_id: str, cap: int = DA
     if not prospect.public_phone:
         return False, "no-phone"
     import os as _os
-    if _os.getenv("ENFORCE_WORK_HOURS", "0") == "1":
+    # Default ON: B2B cold sends only 8am-8pm recipient time. Night blasts are
+    # the fastest way to get a sender number reviewed. Set ENFORCE_WORK_HOURS=0
+    # to disable (not recommended).
+    if _os.getenv("ENFORCE_WORK_HOURS", "1") == "1":
         if not in_work_hours(location=getattr(prospect, "location", "") or ""):
             return False, "outside-work-hours-recipient"
     if sent_today_count(db, user_id) >= cap:
