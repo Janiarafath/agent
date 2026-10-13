@@ -1,0 +1,27 @@
+DashWin — switch a user's plan (developer cheat-sheet)
+=====================================================
+Plans live in Neon table user_settings. No deploy needed. Effect is instant
+(next dashboard refresh shows new limits).
+
+TIERS (backend/plans.py):
+  free    = look-only ............ 0 sends/day,   0 AI/day,   Rs 0
+  starter = first paid ........... 25 sends/day, 200 AI/day,  Rs 299
+  growth  = volume ............... 600 sends/day, 3000 AI/day, Rs 599
+  pro     = power ................ 2000 sends/day, 10000 AI/day, Rs 999
+Meters reset midnight IST. Paid upgrades are manual (user contacts us).
+
+1) GET THE UID
+   Firebase console > Authentication > Users > copy UID column.
+   (Or Neon SQL:  select user_id, email from early_access order by created_at;)
+
+2) FLIP IT (Neon dashboard > SQL Editor, replace UID_HERE + plan):
+   insert into user_settings (user_id, plan, admin_phone)
+   values ('UID_HERE', 'starter', '')
+   on conflict (user_id) do update set plan = 'starter';
+
+3) VERIFY (same editor):
+   select user_id, plan, admin_phone from user_settings
+   where user_id = 'UID_HERE';
+
+Downgrade: same query with 'free'. Growth/Pro: 'growth' / 'pro'.
+Contact for paid: ajaniarafath@gmail.com, +91 81486 47818.
